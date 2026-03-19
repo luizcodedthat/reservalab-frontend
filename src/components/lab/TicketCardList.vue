@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 import TicketCard from './TicketCard.vue';
 import { TvIcon } from 'lucide-vue-next';
 import { useTicketStore } from '@/stores/useTicketStore';
@@ -9,11 +9,10 @@ const props = defineProps({
 })
 
 const ticketStore = useTicketStore()
-const tickets = ref([])
+const tickets = computed(() => ticketStore.ticketsByLab[props.labId]?.slice(0, 4) ?? [])
 
 onMounted(async () => {
     await ticketStore.loadTicketsByLabId(props.labId)
-    tickets.value = ticketStore.ticketsByLab[props.labId].slice(0, 4)
 })
 
 </script>
