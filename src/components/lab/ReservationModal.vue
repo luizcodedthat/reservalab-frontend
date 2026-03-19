@@ -51,6 +51,32 @@ function getSlotRange(reservation, slots) {
   return Array.from({ length: endIndex - startIndex + 1 }, (_, i) => startIndex + i)
 }
 
+const pastSlots = computed(() => {
+  const past = new Set()
+
+  const nowBrasilia = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+  )
+
+  const todayBrasilia = nowBrasilia.toISOString().split('T')[0]
+  const selectedDateStr = selectedDate.value.toISOString().split('T')[0]
+
+  if (selectedDateStr !== todayBrasilia) return past
+
+  const currentMinutes = nowBrasilia.getHours() * 60 + nowBrasilia.getMinutes()
+
+  slots.forEach(slot => {
+    const [endH, endM] = slot.endTime.split(':').map(Number)
+    const endMinutes = endH * 60 + endM
+
+    if (endMinutes <= currentMinutes) {
+      past.add(slot.index)
+    }
+  })
+
+  return past
+})
+
 const busySlots = computed(() => {
   const dateStr = selectedDate.value.toISOString().split('T')[0]
   const labId = props.labInfo.id
@@ -58,7 +84,7 @@ const busySlots = computed(() => {
   const todaysReservations = reservationStore.reservationsByLab(labId)
     .filter(r => r.date === dateStr)
 
-  const occupied = new Set()
+  const occupied = new Set([...pastSlots.value])
 
   todaysReservations.forEach(res => {
     res.intervals.forEach(interval => {
