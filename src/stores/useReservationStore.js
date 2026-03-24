@@ -10,7 +10,7 @@ export const useReservationStore = defineStore("reservations", {
   getters: {
     reservationsByLab: (state) => {
       return (labId) =>
-        state.reservations.filter(r => r.labId === Number(labId));
+        state.reservations.filter(r => Number(r.laboratoryId) === Number(labId));
     },
 
     getById: (state) => {
