@@ -1,49 +1,42 @@
 <script setup>
-
-import { ref } from 'vue';
+import { computed } from 'vue';
 import { Search } from 'lucide-vue-next';
 
-defineProps({
-    placeholder: {
-        type: String,
-        default: 'Busque pelo nome, ex.: Lab 07'
-    },
-    buttonLabel: {
-        type: String,
-        default: 'Buscar'
-    }
-});
+const props = defineProps({
+  modelValue: { type: String, default: '' },
+  placeholder: { type: String, default: 'Busque pelo nome, ex.: Lab 07' },
+  buttonLabel: { type: String, default: 'Buscar' }
+})
 
-const filter = ref('');
+const emit = defineEmits(['update:modelValue', 'search'])
 
-const emit = defineEmits(['search']);
+const filter = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+})
 
-const onSearch = () => {
-  emit('search', filter.value)
-}
-
+const onSearch = () => emit('search', filter.value)
 </script>
 
 <template>
-
-<div class="search-area">
+  <div class="search-area">
     <div class="input-wrapper">
-        <Search class="input-icon" color="#94A3B8" />
-        <input
-            v-model="filter"
-            @keyup.enter="onSearch" 
-            type="text"
-            name="search-lab"
-            id="search-lab"
-            :placeholder="placeholder" />
+      <Search class="input-icon" color="#94A3B8" />
+      <input
+        :value="filter"
+        @input="filter = $event.target.value"
+        @keyup.enter="onSearch"
+        type="text"
+        name="search-lab"
+        id="search-lab"
+        :placeholder="placeholder"
+      />
     </div>
     <button @click="onSearch" class="btn-primary">{{ buttonLabel }}</button>
-</div>
-
+  </div>
 </template>
 
 <style scoped>
-
 .search-area {
   margin: 0 auto;
   width: 40rem;
@@ -77,5 +70,4 @@ const onSearch = () => {
   color: #888;
   pointer-events: none;
 }
-
 </style>

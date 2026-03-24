@@ -1,35 +1,44 @@
-import DAOService from "@/services/DAOService";
+import { commentApi } from "@/api/commentApi";
 import { Comment } from "@/models/CommentModel";
 
 class CommentService {
-  constructor() {
-    this.dao = new DAOService("comments");
+
+  async getByLab(labId, page = 0, size = 20) {
+    const response = await commentApi.getCommentsByLab(labId, page, size);
+
+    const docs = response.data.content || [];
+
+    return docs.map(doc => new Comment(doc));
   }
 
-  async create(comment) {
+  async getAll(page = 0, size = 20) {
+    const response = await commentApi.getAll(page, size);
 
-    if (!comment.isValid()) throw new Error("Objeto Comment inválido");
+    const docs = response.data.content || [];
 
-    const id = await this.dao.insert(comment.toJSON());
-    return new Comment({ id, ...comment.toJSON() });
+    return docs.map(doc => new Comment(doc));
   }
 
-  async getAll() {
-    const items = await this.dao.getAll();
-    return items.map(data => new Comment(data));
-  }
+  async create(commentData) {
+    const comment = new Comment(commentData);
 
-  async getByLab(labId) {
-    const items = await this.dao.search("labId", labId);
-    return items.map(data => new Comment(data));
+    if (!comment.isValid()) {
+      throw new Error("Objeto Comment inválido");
+    }
+
+    const response = await commentApi.create(comment.toJSON());
+
+    return new Comment(response.data);
   }
 
   async update(id, fields) {
-    await this.dao.update(id, fields);
+    const response = await commentApi.update(id, fields);
+    return new Comment(response.data);
   }
 
   async delete(id) {
-    await this.dao.delete(id);
+    await commentApi.delete(id);
+    return true;
   }
 }
 

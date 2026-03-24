@@ -4,97 +4,110 @@ import { useReservationStore } from "@/stores/useReservationStore"
 import { AlarmClock } from "lucide-vue-next"
 
 const props = defineProps({
-  labId: { type: String, required: true },
+  labId: { type: [String, Number], required: true },
   name: { type: String, required: true },
   capacity: { type: Number, required: true }
 })
 
 const reservationStore = useReservationStore()
 
-const todayStr = new Date().toISOString().slice(0, 10);
-
-const slots = [
-  { index: 0, startTime: "07:45", endTime: "08:30" },
-  { index: 1, startTime: "08:30", endTime: "09:15" },
-  { index: 2, startTime: "09:35", endTime: "10:20" },
-  { index: 3, startTime: "10:20", endTime: "11:05" },
-  { index: 4, startTime: "11:05", endTime: "11:50" },
-  { index: 5, startTime: "13:00", endTime: "13:45" },
-  { index: 6, startTime: "13:45", endTime: "14:30" },
-  { index: 7, startTime: "14:30", endTime: "15:15" },
-  { index: 8, startTime: "15:35", endTime: "16:20" },
-  { index: 9, startTime: "16:20", endTime: "17:05" },
-  { index: 10, startTime: "17:05", endTime: "17:50" },
-  { index: 11, startTime: "18:15", endTime: "19:00" },
-  { index: 12, startTime: "19:00", endTime: "19:45" },
-  { index: 13, startTime: "19:45", endTime: "20:30" },
-  { index: 14, startTime: "20:30", endTime: "21:15" },
-  { index: 15, startTime: "21:15", endTime: "22:00" },
-]
-
-function timeToNumber(timeStr) {
-  const [h, m] = timeStr.split(":").map(Number)
-  return h + m / 60
+function pad(value) {
+  return String(value).padStart(2, "0")
 }
 
-function slotStart(slotIndex) {
-  return timeToNumber(slots[slotIndex].startTime)
+function getBrazilDateString(date = new Date()) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo"
+  }).format(date)
 }
 
-function slotEnd(slotIndex) {
-  return timeToNumber(slots[slotIndex].endTime)
+function timeToMinutes(timeStr) {
+  if (!timeStr) return Infinity
+  const [h, m] = timeStr.slice(0, 5).split(":").map(Number)
+  return h * 60 + m
 }
+
+function formatTime(timeStr) {
+  return timeStr ? timeStr.slice(0, 5) : "--:--"
+}
+
+function getReservationBlocks(reservation) {
+  return [...(reservation?.timeBlocks ?? [])].sort((a, b) => {
+    const orderDiff = (a.blockOrder ?? 0) - (b.blockOrder ?? 0)
+    if (orderDiff !== 0) return orderDiff
+    return timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+  })
+}
+
+function getReservationStartMinute(reservation) {
+  const blocks = getReservationBlocks(reservation)
+  return blocks[0]?.startTime ? timeToMinutes(blocks[0].startTime) : Infinity
+}
+
+function getReservationEndMinute(reservation) {
+  const blocks = getReservationBlocks(reservation)
+  return blocks.at(-1)?.endTime ? timeToMinutes(blocks.at(-1).endTime) : -Infinity
+}
+
+function isReservationActiveNow(reservation, nowMinutes) {
+  return getReservationBlocks(reservation).some(block => {
+    const start = timeToMinutes(block.startTime)
+    const end = timeToMinutes(block.endTime)
+    return start <= nowMinutes && nowMinutes < end
+  })
+}
+
+const todayStr = computed(() => getBrazilDateString())
+
+const labIdNumber = computed(() => Number(props.labId))
 
 onMounted(() => {
-  reservationStore.loadReservationsByLab(props.labId)
+  reservationStore.loadReservationsByLab(labIdNumber.value)
 })
 
 const labReservations = computed(() =>
-  reservationStore.reservationsByLab(props.labId).filter(r => r.date === todayStr)
+  (reservationStore.reservationsByLab?.(labIdNumber.value) || [])
+    .filter(r => r.reservationDate === todayStr.value)
 )
 
 const currentReservation = computed(() => {
   const now = new Date()
-  const nowNum = now.getHours() + now.getMinutes() / 60
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
-  return labReservations.value
-    .map(res => {
-      const first = res.intervals[0]
-      const last = res.intervals.at(-1)
-
-      return {
-        res,
-        start: slotStart(first.startSlot),
-        end: slotEnd(last.endSlot)
-      }
-    })
-    .find(r => r.start <= nowNum && nowNum <= r.end)?.res || null
+  return labReservations.value.find(res => isReservationActiveNow(res, nowMinutes)) || null
 })
 
 const nextReservation = computed(() => {
   const now = new Date()
-  const nowNum = now.getHours() + now.getMinutes() / 60
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
-  return labReservations.value
-    .map(res => {
-      const s = slotStart(res.intervals[0].startSlot)
-      return { res, start: s }
-    })
-    .filter(r => r.start > nowNum)
-    .sort((a, b) => a.start - b.start)[0]?.res || null
+  return [...labReservations.value]
+    .filter(res => getReservationStartMinute(res) > nowMinutes)
+    .sort((a, b) => getReservationStartMinute(a) - getReservationStartMinute(b))[0] || null
 })
 
 const availabilityText = computed(() => {
   if (currentReservation.value) {
-    const last = currentReservation.value.intervals.at(-1)
-    const time = slots[last.endSlot].endTime
-    return `Ocupado até ${time}`
+    const currentBlocks = getReservationBlocks(currentReservation.value)
+    const activeBlock = currentBlocks.find(block => {
+      const now = new Date()
+      const nowMinutes = now.getHours() * 60 + now.getMinutes()
+      const start = timeToMinutes(block.startTime)
+      const end = timeToMinutes(block.endTime)
+      return start <= nowMinutes && nowMinutes < end
+    })
+
+    return activeBlock
+      ? `Ocupado até ${formatTime(activeBlock.endTime)}`
+      : "Ocupado"
   }
 
   if (nextReservation.value) {
-    const first = nextReservation.value.intervals[0]
-    const time = slots[first.startSlot].startTime
-    return `Disponível até ${time}`
+    const blocks = getReservationBlocks(nextReservation.value)
+    const first = blocks[0]
+    return first
+      ? `Disponível até ${formatTime(first.startTime)}`
+      : "Disponível"
   }
 
   return "Disponível o dia todo"
@@ -103,9 +116,8 @@ const availabilityText = computed(() => {
 
 <template>
   <div class="lab-card" :class="{ 'reserved-lab': currentReservation }">
-    
     <div class="card-top">
-      <alarm-clock size="16" />
+      <AlarmClock size="16" />
       <p class="availability-text">{{ availabilityText }}</p>
     </div>
 
@@ -117,15 +129,14 @@ const availabilityText = computed(() => {
     <RouterLink class="link-lab" :to="`/laboratorios/${labId}`">
       Ir para reserva
     </RouterLink>
-
   </div>
 </template>
-
 
 <style scoped>
 .card-top {
   display: flex;
   gap: 4px;
+  align-items: center;
 }
 
 .lab-card {
@@ -133,12 +144,8 @@ const availabilityText = computed(() => {
   border-radius: 5px;
   border: 1px solid hsl(213, 27%, 84%);
   box-sizing: border-box;
-
-  padding: 25px 20px;
-
   width: 248px;
   height: auto;
-
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -160,10 +167,8 @@ const availabilityText = computed(() => {
   text-decoration: none;
   text-align: center;
   background-color: var(--color-primary);
-
   padding: 10px 16px;
   border-radius: 5px;
-
   margin-top: .4rem;
   color: hsl(0, 0%, 100%);
   font-size: var(--font-size-sm);

@@ -1,90 +1,79 @@
-import DAOService from './DAOService';
-import { Reservation } from '../models/ReservationModel';
+import { reservationApi } from '../api/reservationApi'
+import { Reservation } from '../models/ReservationModel'
 
 class ReservationService {
-  constructor() {
-    this.dao = new DAOService('reservations');
-  }
 
   // Buscar todas as reservas
-  async getAllReservations() {
-    const docs = await this.dao.getAll();
-    return docs.map(doc => new Reservation(doc));
+  async getAllReservations(page = 0, size = 20) {
+    const response = await reservationApi.getAll(page, size)
+    const docs = response.data.content ?? []
+
+    return docs.map(doc => new Reservation(doc))
   }
 
-  // Buscar uma reserva pelo ID
+  // Buscar reserva por ID
   async getReservationById(id) {
-    const doc = await this.dao.get(id);
-    return new Reservation(doc);
+    const response = await reservationApi.getById(id)
+    return new Reservation(response.data)
   }
 
   // Criar nova reserva
   async createReservation(reservationData) {
-    const reservation = new Reservation(reservationData);
+    const reservation = new Reservation(reservationData)
 
     if (!reservation.isValid()) {
-      throw new Error('Dados da reserva são inválidos');
+      throw new Error('Dados da reserva são inválidos')
     }
 
-    // createdAt automático se não vier
-    if (!reservation.createdAt) {
-      reservation.createdAt = new Date().toISOString();
-    }
+    const response = await reservationApi.create(
+      reservation.toJSON?.() ?? { ...reservation }
+    )
 
-    const id = await this.dao.insert(reservation.toJSON?.() ?? { ...reservation });
-
-    return { id, ...reservation };
+    return new Reservation(response.data)
   }
 
-  // Atualizar reserva
-  async updateReservation(id, updates) {
-    const existing = await this.getReservationById(id);
-    const updated = new Reservation({ ...existing, ...updates });
-
-    if (!updated.isValid()) {
-      throw new Error('Dados atualizados são inválidos');
-    }
-
-    await this.dao.update(id, updated.toJSON?.() ?? { ...updated });
-    return updated;
-  }
-
-  // Deletar reserva
+  // Cancelar reserva (DELETE /reservations/{id})
   async deleteReservation(id) {
-    await this.dao.delete(id);
-    return true;
+    await reservationApi.cancel(id)
+    return true
   }
 
-  // Buscar reservas por termo
-  async searchReservations(searchTerm) {
-    if (!searchTerm || !searchTerm.trim()) {
-      return this.getAllReservations();
-    }
+  // Buscar reservas com filtros (usa endpoint /search)
+  async searchReservations(filters) {
+    const response = await reservationApi.search(filters)
+    const docs = response.data.content || []
 
-    const all = await this.getAllReservations();
-    const term = searchTerm.toLowerCase();
-
-    return all.filter(res => res.matchesSearch(term));
+    return docs.map(doc => new Reservation(doc))
   }
 
-  // Buscar reservas por laboratório específico (útil para página de lab)
+  // Buscar reservas por laboratório
   async getReservationsByLab(labId) {
-    const all = await this.getAllReservations();
-    return all.filter(reservation => reservation.labId === labId);
+    return this.searchReservations({
+      laboratoryId: Number(labId)
+    })
   }
 
-  // Buscar reservas por data exata (útil se quiser calendário)
+  // Buscar reservas por data
   async getReservationsByDate(dateStr) {
-    const all = await this.getAllReservations();
-    return all.filter(reservation => reservation.date === dateStr);
+    return this.searchReservations({
+      dateFrom: dateStr,
+      dateTo: dateStr
+    })
   }
 
   // Buscar reservas aprovadas
   async getApprovedReservations() {
-    const all = await this.getAllReservations();
-    return all.filter(res => res.approved === true);
+    return this.searchReservations({
+      status: 'APPROVED'
+    })
   }
-  
+
+  // Cancelar reservas por filtro
+  async cancelReservationsByFilter(filters) {
+    const response = await reservationApi.cancelByFilter(filters)
+    return response.data
+  }
+
 }
 
-export default new ReservationService();
+export default new ReservationService()

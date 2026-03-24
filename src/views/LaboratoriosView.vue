@@ -1,5 +1,4 @@
 <script setup>
-
 import { ref, computed, onMounted } from 'vue';
 import LabCardList from '@/components/labs/LabCardList.vue';
 import SearchArea from '@/components/labs/SearchArea.vue';
@@ -13,16 +12,12 @@ onMounted(async () => {
   await labStore.loadLabs()
 })
 
-const onSearch = (value) => {
-  filter.value = value
-}
 
 const filteredLabs = computed(() => {
   return labStore.labs?.filter(
     (lab) => lab.matchesSearch(filter.value)
   ) || []
 })
-
 </script>
 
 <template>
@@ -31,9 +26,8 @@ const filteredLabs = computed(() => {
   </div>
   <div id="content">
 
-    <SearchArea @search="onSearch" />
+    <SearchArea v-model="filter" />
     <LabCardList :labList="filteredLabs" />
-
   </div>
 </template>
 
