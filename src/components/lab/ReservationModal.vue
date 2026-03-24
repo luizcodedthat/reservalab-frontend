@@ -1,12 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Transition } from 'vue'
 import { DatePicker } from 'v-calendar'
-
 import 'v-calendar/style.css'
+import { X } from 'lucide-vue-next'
 
 import { useReservationStore } from '@/stores/useReservationStore'
 import { useAuthStore } from '@/stores/useAuthStore'
+
 const reservationStore = useReservationStore()
 const authStore = useAuthStore()
 
@@ -21,136 +21,124 @@ const selectedDate = ref(new Date())
 const startTime = ref('')
 const endTime = ref('')
 const message = ref('')
-
 const conflictList = ref([])
 
-const slots = [
-  { index: 0, startTime: "07:45", endTime: "08:30" },
-  { index: 1, startTime: "08:30", endTime: "09:15" },
-  { index: 2, startTime: "09:35", endTime: "10:20" },
-  { index: 3, startTime: "10:20", endTime: "11:05" },
-  { index: 4, startTime: "11:05", endTime: "11:50" },
-  { index: 5, startTime: "13:00", endTime: "13:45" },
-  { index: 6, startTime: "13:45", endTime: "14:30" },
-  { index: 7, startTime: "14:30", endTime: "15:15" },
-  { index: 8, startTime: "15:35", endTime: "16:20" },
-  { index: 9, startTime: "16:20", endTime: "17:05" },
-  { index: 10, startTime: "17:05", endTime: "17:50" },
-  { index: 11, startTime: "18:15", endTime: "19:00" },
-  { index: 12, startTime: "19:00", endTime: "19:45" },
-  { index: 13, startTime: "19:45", endTime: "20:30" },
-  { index: 14, startTime: "20:30", endTime: "21:15" },
-  { index: 15, startTime: "21:15", endTime: "22:00" }
-]
-
-function getSlotRange(reservation, slots) {
-  const startIndex = slots.find(s => s.startTime === reservation.startTime)?.index
-  const endIndex = slots.find(s => s.endTime === reservation.endTime)?.index
-  if (startIndex == null || endIndex == null) return []
-
-  return Array.from({ length: endIndex - startIndex + 1 }, (_, i) => startIndex + i)
+function closeModal() {
+  emit('close')
 }
 
-const pastSlots = computed(() => {
-  const past = new Set()
+function pad(n) {
+  return String(n).padStart(2, '0')
+}
 
-  const nowBrasilia = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+function toDateString(date) {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  return `${year}-${month}-${day}`
+}
+
+function timeToMinutes(timeStr) {
+  if (!timeStr) return 0
+  const [h, m] = timeStr.slice(0, 5).split(':').map(Number)
+  return h * 60 + m
+}
+
+function normalizeTime(timeStr) {
+  return timeStr?.length === 5 ? `${timeStr}:00` : timeStr
+}
+
+function formatTime(timeStr) {
+  return timeStr ? timeStr.slice(0, 5) : ''
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return timeToMinutes(startA) < timeToMinutes(endB) &&
+         timeToMinutes(endA) > timeToMinutes(startB)
+}
+
+const selectedDateStr = computed(() => toDateString(selectedDate.value))
+const labId = computed(() => Number(props.labInfo?.id))
+
+const dayReservations = computed(() => {
+  const all = reservationStore.reservations || []
+  return all.filter(res =>
+    Number(res.laboratoryId) === labId.value &&
+    res.reservationDate === selectedDateStr.value
   )
-
-  const todayBrasilia = nowBrasilia.toISOString().split('T')[0]
-  const selectedDateStr = selectedDate.value.toISOString().split('T')[0]
-
-  if (selectedDateStr !== todayBrasilia) return past
-
-  const currentMinutes = nowBrasilia.getHours() * 60 + nowBrasilia.getMinutes()
-
-  slots.forEach(slot => {
-    const [endH, endM] = slot.endTime.split(':').map(Number)
-    const endMinutes = endH * 60 + endM
-
-    if (endMinutes <= currentMinutes) {
-      past.add(slot.index)
-    }
-  })
-
-  return past
 })
 
-const busySlots = computed(() => {
-  const dateStr = selectedDate.value.toISOString().split('T')[0]
-  const labId = props.labInfo.id
+const busyBlocks = computed(() => {
+  const blocks = []
 
-  const todaysReservations = reservationStore.reservationsByLab(labId)
-    .filter(r => r.date === dateStr)
-
-  const occupied = new Set([...pastSlots.value])
-
-  todaysReservations.forEach(res => {
-    res.intervals.forEach(interval => {
-      for (let i = interval.startSlot; i <= interval.endSlot; i++) {
-        occupied.add(i)
-      }
+  dayReservations.value.forEach(reservation => {
+    ;(reservation.timeBlocks || []).forEach(block => {
+      blocks.push({
+        reservationId: reservation.id,
+        requestedByName: reservation.requestedByName,
+        purpose: reservation.purpose,
+        startTime: formatTime(block.startTime),
+        endTime: formatTime(block.endTime),
+        blockOrder: block.blockOrder
+      })
     })
   })
 
-  return occupied
+  return blocks
 })
 
-const filteredStartTimes = computed(() => {
-  return slots.filter(s => !busySlots.value.has(s.index))
-})
+const matchingConflicts = computed(() => {
+  if (!startTime.value || !endTime.value) return []
 
-const filteredEndTimes = computed(() => {
-  if (!startTime.value) return []
-
-  const startIndex = slots.find(s => s.startTime === startTime.value)?.index
-
-  return slots.filter(slot => {
-    if (slot.index < startIndex) return false
-
-    for (let i = startIndex; i <= slot.index; i++) {
-      if (busySlots.value.has(i)) return false
-    }
-    return true
-  })
+  return busyBlocks.value.filter(block =>
+    rangesOverlap(startTime.value, endTime.value, block.startTime, block.endTime)
+  )
 })
 
 function validateInterval() {
   conflictList.value = []
 
-  const startIndex = slots.find(s => s.startTime === startTime.value)?.index
-  const endIndex = slots.find(s => s.endTime === endTime.value)?.index
-
-  if (startIndex == null || endIndex == null) return false
-
-  for (let i = startIndex; i <= endIndex; i++) {
-    if (busySlots.value.has(i)) {
-      conflictList.value.push(slots[i])
-    }
+  if (!startTime.value || !endTime.value) {
+    return false
   }
 
+  if (timeToMinutes(startTime.value) >= timeToMinutes(endTime.value)) {
+    conflictList.value.push({
+      startTime: startTime.value,
+      endTime: endTime.value,
+      requestedByName: 'Horário inválido',
+      purpose: 'A hora inicial deve ser menor que a hora final'
+    })
+    return false
+  }
+
+  conflictList.value = matchingConflicts.value
   return conflictList.value.length === 0
 }
 
 async function confirmReservation() {
+  if (!authStore.user) {
+    alert('Você precisa estar autenticado para reservar.')
+    return
+  }
+
   if (!validateInterval()) {
     return
   }
 
-  const startIndex = slots.find(s => s.startTime === startTime.value)?.index
-  const endIndex = slots.find(s => s.endTime === endTime.value)?.index
-
   const reservationData = {
-    labId: props.labInfo.id,
-    authorId: authStore.user.uid,
-    authorName: authStore.user.displayName,
-    date: selectedDate.value.toISOString().split("T")[0],
-    description: message.value.trim(),
-    intervals: [
+    laboratoryId: labId.value,
+    requestedByUserId: 1, // Mockado
+    requestedByName: authStore.user.displayName,
+    reservationDate: selectedDateStr.value,
+    purpose: message.value.trim(),
+    timeBlocks: [
       {
-        startSlot: startIndex,
-        endSlot: endIndex
+        startTime: normalizeTime(startTime.value),
+        endTime: normalizeTime(endTime.value),
+        blockOrder: 1,
+        durationMinutes: timeToMinutes(endTime.value) - timeToMinutes(startTime.value)
       }
     ]
   }
@@ -158,76 +146,80 @@ async function confirmReservation() {
   try {
     await reservationStore.addReservation(reservationData)
 
-    startTime.value = ""
-    endTime.value = ""
-    message.value = ""
+    startTime.value = ''
+    endTime.value = ''
+    message.value = ''
     conflictList.value = []
 
-    emit("close")
+    closeModal()
   } catch (e) {
-    alert("Erro ao criar reserva.")
+    alert('Erro ao criar reserva.')
     console.error(e)
   }
 }
-
 </script>
 
 <template>
   <Transition name="modal">
-    <div v-if="show" class="modal-backdrop">
+    <div v-if="show" class="modal-backdrop" @click.self="closeModal">
       <div class="modal">
+        <button class="close-btn" type="button" @click="closeModal" aria-label="Fechar modal">
+          <X size="18" />
+        </button>
+
         <h1 class="modal-title">Reservar Laboratório</h1>
         <p class="modal-subtitle">{{ labInfo?.name }}</p>
 
         <div class="form">
-
-          <!-- Date -->
           <div class="form-group">
             <label class="label">Data</label>
-            <DatePicker expanded locale="pt-BR" :first-day-of-week="1" v-model="selectedDate" mode="date" is-required />
+            <DatePicker
+              expanded
+              locale="pt-BR"
+              :first-day-of-week="1"
+              v-model="selectedDate"
+              mode="date"
+              is-required
+            />
           </div>
 
-          <!-- Start Time -->
           <div class="form-group">
             <label class="label">Início</label>
-            <select v-model="startTime" class="select">
-              <option disabled value="">Selecione...</option>
-
-              <option v-for="slot in filteredStartTimes" :key="slot.index" :value="slot.startTime">
-                {{ slot.index + 1 }}º horário — {{ slot.startTime }}
-              </option>
-            </select>
-
+            <input
+              v-model="startTime"
+              class="input"
+              type="time"
+            />
           </div>
 
-          <!-- End Time -->
           <div class="form-group">
             <label class="label">Fim</label>
-            <select v-model="endTime" class="select">
-              <option disabled value="">Selecione...</option>
-
-              <option v-for="slot in filteredEndTimes" :key="slot.index" :value="slot.endTime">
-                {{ slot.index + 1 }}º horário — {{ slot.endTime }}
-              </option>
-            </select>
-
+            <input
+              v-model="endTime"
+              class="input"
+              type="time"
+            />
           </div>
 
-          <!-- Message -->
           <div class="form-group">
             <label class="label">Mensagem</label>
-            <textarea class="textarea" v-model="message" rows="2"
-              placeholder="Ex.: ADS4M, Apresentação de TCC, Mulheres Mil"></textarea>
+            <textarea
+              class="textarea"
+              v-model="message"
+              rows="2"
+              placeholder="Ex.: ADS4M, Apresentação de TCC, Mulheres Mil"
+            ></textarea>
             <p class="hint">Mensagem curta informando o propósito da reserva.</p>
           </div>
 
-          <!-- Exibir conflitos -->
           <div v-if="conflictList.length" class="conflict-box">
-            <h3 class="conflict-title">Horários já reservados:</h3>
+            <h3 class="conflict-title">Conflitos encontrados:</h3>
 
             <ul class="conflict-list">
-              <li v-for="c in conflictList" :key="c.index">
-                {{ c.index + 1 }}º horário — {{ c.startTime }} até {{ c.endTime }}
+              <li v-for="c in conflictList" :key="`${c.reservationId}-${c.blockOrder}`">
+                {{ c.startTime }} até {{ c.endTime }}
+                <span v-if="c.requestedByName"> — {{ c.requestedByName }}</span>
+                <span v-if="c.purpose"> — {{ c.purpose }}</span>
               </li>
             </ul>
 
@@ -237,20 +229,13 @@ async function confirmReservation() {
           <button class="btn-primary mt-4" @click="confirmReservation">
             Confirmar Reserva
           </button>
-
-
-
         </div>
       </div>
     </div>
   </Transition>
 </template>
 
-
 <style scoped>
-/* ===========================
-   BACKDROP
-=========================== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -261,10 +246,8 @@ async function confirmReservation() {
   align-items: center;
 }
 
-/* ===========================
-   MODAL CONTAINER (shadcn style)
-=========================== */
 .modal {
+  position: relative;
   background: white;
   padding: 2rem;
   width: 450px;
@@ -275,10 +258,33 @@ async function confirmReservation() {
   animation: fadeIn 0.2s ease;
 }
 
+.close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  border: 1px solid #E5E7EB;
+  background: white;
+  color: #64748B;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #F8FAFC;
+  color: #0F172A;
+  border-color: #CBD5E1;
+}
+
 .modal-title {
   font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 0.4rem;
+  padding-right: 2rem;
 }
 
 .modal-subtitle {
@@ -286,9 +292,6 @@ async function confirmReservation() {
   margin-bottom: 1.5rem;
 }
 
-/* ===========================
-   FORM ELEMENTS
-=========================== */
 .form-group {
   margin-bottom: 1rem;
   display: flex;
@@ -301,7 +304,8 @@ async function confirmReservation() {
 }
 
 .select,
-.textarea {
+.textarea,
+.input {
   width: 100%;
   border: 1px solid #D1D5DB;
   border-radius: 8px;
@@ -311,7 +315,8 @@ async function confirmReservation() {
 }
 
 .select:focus,
-.textarea:focus {
+.textarea:focus,
+.input:focus {
   border-color: #6366F1;
   outline: none;
 }
@@ -322,9 +327,6 @@ async function confirmReservation() {
   margin-top: 0.25rem;
 }
 
-/* ===========================
-   BUTTON
-=========================== */
 .btn-primary {
   width: 100%;
   background: #4F46E5;
@@ -339,9 +341,6 @@ async function confirmReservation() {
   background: #4338CA;
 }
 
-/* ===========================
-   ANIMATION
-=========================== */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.2s ease;
@@ -354,6 +353,7 @@ async function confirmReservation() {
 
 .conflict-box {
   margin-top: 15px;
+  margin-bottom: 15px;
   padding: 12px;
   background: #ffe5e5;
   border: 1px solid #ffbaba;

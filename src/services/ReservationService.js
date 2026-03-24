@@ -6,7 +6,7 @@ class ReservationService {
   // Buscar todas as reservas
   async getAllReservations(page = 0, size = 20) {
     const response = await reservationApi.getAll(page, size)
-    const docs = response.data.content || []
+    const docs = response.data.content ?? []
 
     return docs.map(doc => new Reservation(doc))
   }
@@ -49,7 +49,7 @@ class ReservationService {
   // Buscar reservas por laboratório
   async getReservationsByLab(labId) {
     return this.searchReservations({
-      laboratoryId: labId
+      laboratoryId: Number(labId)
     })
   }
 
