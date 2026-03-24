@@ -1,97 +1,57 @@
-import DAOService from "./DAOService";
-import { Chamado } from "@/models/ChamadoModel";
+import { ticketApi } from '@/api/ticketApi'
+import { Chamado } from '@/models/ChamadoModel'
 
 class ChamadoService {
-  constructor() {
-    this.dao = new DAOService("chamados");
-  }
-
-  normalize(doc) {
-    const createdAt =
-      typeof doc.createdAt === "number" ? doc.createdAt : Date.now();
-
-    const dataStr = new Date(createdAt).toLocaleDateString("pt-BR");
-
-    const statusRaw = String(doc.status ?? "aberto");
-    const status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
-
-    return {
-      id: doc.id,
-      authorId: doc.authorId ?? null,
-      labId: doc.labId ?? null,
-      titulo: doc.titulo ?? "",
-      descricao: doc.descricao ?? "",
-      status,
-      createdAt,
-      data: dataStr,
-      comentario: doc.comentario ?? ""
-    };
-  }
 
   async getAllTickets() {
-    const docs = await this.dao.getAll();
-    return docs.map(doc => new Chamado(doc));
+    const response = await ticketApi.getAll()
+    return response.data.content.map(Chamado.fromAPI)
   }
 
   async getTicketsByLabId(labId) {
-    if (!labId) return [];
-
-    const docs = await this.dao.search("labId", labId);
-    return docs.map(doc => new Chamado(doc));
+    const numericId = parseInt(labId.replace('lab', ''))
+    const response = await ticketApi.search({ labId: numericId })
+    return response.data.content.map(Chamado.fromAPI)
   }
 
   async getTicketById(id) {
-    const doc = await this.dao.get(id);
-    return this.normalize(doc);
+    const response = await ticketApi.getById(id)
+    return Chamado.fromAPI(response.data)
   }
 
   async addTicket(data) {
-    const chamado = new Chamado({
-      ...data,
-      createdAt: Date.now()
-    });
-
-    if (!chamado.isValid()) {
-      throw new Error("Dados do ticket são inválidos");
-    }
-
-    const id = await this.dao.insert(chamado.toJSON());
-
-    return this.normalize({ id, ...chamado.toJSON() });
+    const chamado = new Chamado(data)
+    if (!chamado.isValid()) throw new Error("Dados do ticket são inválidos")
+    const response = await ticketApi.create(chamado.toAPI())
+    return Chamado.fromAPI(response.data)
   }
 
   async updateTicket(id, updates) {
-    const existing = await this.getTicketById(id);
-    const updated = new Chamado({ ...existing, ...updates });
+    const existing = await this.getTicketById(id)
+    if (!existing) throw new Error("Ticket não encontrado")
 
-    if (!updated.isValid()) {
-      throw new Error("Dados atualizados são inválidos");
-    }
+    const updated = { ...existing, ...updates }
+    const chamado = new Chamado(updated)
+    if (!chamado.isValid()) throw new Error("Dados do ticket são inválidos")
 
-    await this.dao.update(id, updated.toJSON());
-    return updated;
+    const response = await ticketApi.update(id, chamado.toAPI())
+    return Chamado.fromAPI(response.data)
   }
 
   async deleteTicket(id) {
-    await this.dao.delete(id);
-    return true;
+    await ticketApi.delete(id)
+    return true
   }
 
   async searchTickets(searchTerm) {
-    if (!searchTerm || !searchTerm.trim()) {
-      return this.getAllTickets();
-    }
-
-    const all = await this.getAllTickets();
-    const term = searchTerm.toLowerCase();
-
-    return all.filter(ch => ch.matchesSearch(term));
+    const all = await this.getAllTickets()
+    return all.filter(c => c.matchesSearch(searchTerm))
   }
 
   async getOpenTickets() {
-    const all = await this.getAllTickets();
-    return all.filter(ch => ch.status === "aberto");
+    const response = await ticketApi.search({ status: 'OPEN' })
+    return response.data.content.map(Chamado.fromAPI)
   }
 }
 
-export default new ChamadoService();
+export default new ChamadoService()
