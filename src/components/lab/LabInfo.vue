@@ -113,7 +113,7 @@ const currentReservationBlock = computed(() => {
 const nextReservationsList = computed(() => {
   return labReservations.value
     .filter(reservation => {
-      // exclui a reserva atual em andamento
+
       return reservation.id !== currentReservation.value?.id
     })
     .filter(reservation => getNextStartMinutes(reservation) !== Infinity)
@@ -224,7 +224,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <button @click="showModal = true" class="btn-primary">
+        <button @click="showModal = true" class="btn-primary" :disabled="!lab.active">
           Reservar esse laboratório
         </button>
 
