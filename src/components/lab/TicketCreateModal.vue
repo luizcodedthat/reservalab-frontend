@@ -10,10 +10,11 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue", "save"]);
 
 const auth = useAuthStore();
-const ticketStore = useTicketStore()
+const ticketStore = useTicketStore();
 
 const titulo = ref("");
 const descricao = ref("");
+const prioridade = ref("MEDIUM");
 const dataAtual = ref("");
 const loading = ref(false);
 
@@ -30,6 +31,7 @@ function fechar() {
   emit("update:modelValue", false);
   titulo.value = "";
   descricao.value = "";
+  prioridade.value = "MEDIUM";
 }
 
 async function salvar() {
@@ -41,11 +43,12 @@ async function salvar() {
   loading.value = true;
 
   const payload = {
-    authorId: auth.user ? auth.user.uid : null,
+    authorId: 1,
     labId: props.labId,
     titulo: titulo.value.trim(),
     descricao: descricao.value.trim(),
-    status: "aberto",
+    prioridade: prioridade.value,
+    status: "Aberto",
     createdAt: Date.now()
   };
 
@@ -89,9 +92,21 @@ async function salvar() {
         <textarea v-model="descricao" class="textarea" rows="4" placeholder="Descreva brevemente o problema"></textarea>
       </div>
 
+      <div class="field">
+        <label class="field-label">Prioridade</label>
+        <select v-model="prioridade" class="select">
+          <option value="LOW">Baixa</option>
+          <option value="MEDIUM">Média</option>
+          <option value="HIGH">Alta</option>
+          <option value="URGENT">Urgente</option>
+        </select>
+      </div>
+
       <div class="modal-footer">
         <button class="btn-cancel" @click="fechar">Cancelar</button>
-        <button class="btn-save" @click="salvar" :disabled="loading">{{ loading ? 'Salvando...' : 'Salvar' }}</button>
+        <button class="btn-save" @click="salvar" :disabled="loading">
+          {{ loading ? 'Salvando...' : 'Salvar' }}
+        </button>
       </div>
     </div>
   </div>
