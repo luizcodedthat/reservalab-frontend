@@ -6,6 +6,7 @@ export class Comment {
     this.authorId = data.authorId ?? null
     this.authorName = data.authorName ?? ''
 
+
     this.content = data.content ?? ''
 
     this.rating = data.rating ?? null

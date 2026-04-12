@@ -1,60 +1,65 @@
-import DAOService from './DAOService';
-import { User } from '../models/UserModel';
+import http from '@/api/http'
+import { User } from '@/models/UserModel'
 
 class UserService {
-  constructor() {
-    this.dao = new DAOService('users');
-  }
 
   async getAllUsers() {
-    const docs = await this.dao.getAll();
-    return docs.map(doc => new User(doc));
+    const response = await http.get('/users')
+    return response.data.map(User.fromAPI)
   }
 
   async getUserById(id) {
-    const doc = await this.dao.get(id);
-    return new User(doc);
-  }
-
-  async getUserByUid(uid) {
-    const docs = await this.dao.search("userId", uid);
-    if (docs.length === 0) return null;
-    return new User(docs[0]);
+    const response = await http.get(`/users/${id}`)
+    return User.fromAPI(response.data)
   }
 
   async getUserByEmail(email) {
-    const docs = await this.dao.search("email", email);
-    if (docs.length === 0) return null;
-    return new User(docs[0]);
+    const response = await http.get('/users/by-email', { params: { email } })
+    return User.fromAPI(response.data)
+  }
+
+  async getUserByUsername(username) {
+    const response = await http.get('/users/by-username', { params: { username } })
+    return User.fromAPI(response.data)
+  }
+
+  async getUsersByRole(role) {
+    const response = await http.get('/users/by-role', { params: { role } })
+    return response.data.map(User.fromAPI)
   }
 
   async createUser(userData) {
-    const user = new User(userData);
+    const user = User.fromAPI(userData)
 
     if (!user.isValid()) {
-      throw new Error("Dados do usuário são inválidos");
+      throw new Error('Dados do usuário são inválidos')
     }
 
-    const id = await this.dao.insert(user.toJSON());
-    return { id, ...user };
+    // Criação passa pelo fluxo de registro do AuthController
+    const response = await http.post('/auth/register', user.toRegisterPayload(userData.password))
+    return User.fromAPI(response.data.user)
   }
 
   async updateUser(id, updates) {
-    const existing = await this.getUserById(id);
-    const updated = new User({ ...existing, ...updates });
+    const user = User.fromAPI(updates)
 
-    if (!updated.isValid()) {
-      throw new Error("Dados atualizados são inválidos");
+    if (!user.isValid()) {
+      throw new Error('Dados atualizados são inválidos')
     }
 
-    await this.dao.update(id, updated.toJSON());
-    return updated;
+    const response = await http.put(`/users/${id}`, user.toUpdatePayload(updates.password))
+    return User.fromAPI(response.data)
+  }
+
+  async deactivateUser(id) {
+    const response = await http.patch(`/users/${id}/deactivate`)
+    return User.fromAPI(response.data)
   }
 
   async deleteUser(id) {
-    await this.dao.delete(id);
-    return true;
+    await http.delete(`/users/${id}`)
+    return true
   }
 }
 
-export default new UserService();
+export default new UserService()

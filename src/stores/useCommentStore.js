@@ -1,67 +1,71 @@
-import { defineStore } from "pinia";
-import CommentService from "@/services/CommentService";
+import { defineStore } from 'pinia'
+import CommentService from '@/services/CommentService'
 
-export const useCommentStore = defineStore("comments", {
+export const useCommentStore = defineStore('comments', {
   state: () => ({
-    commentsByLab: {},   // { labId: Comment[] }
-    lastFetched: {},     // { labId: timestamp }
-    loading: false
+    commentsByTicket: {},  // { ticketId: Comment[] }
+    lastFetched:      {},  // { ticketId: timestamp }
+    loading:          false
   }),
 
   getters: {
-    getCommentsByLab: (state) => {
-      return (labId) => state.commentsByLab[labId] || [];
-    }
+    getCommentsByTicket: (state) => (ticketId) =>
+      state.commentsByTicket[ticketId] ?? []
   },
 
   actions: {
 
-    async loadComments(labId, force = false) {
-      const FIVE_MIN = 5 * 60 * 1000;
-      const now = Date.now();
+    async loadComments(ticketId, force = false) {
+      const FIVE_MIN = 5 * 60 * 1000
+      const now = Date.now()
 
       if (
         !force &&
-        this.lastFetched[labId] &&
-        now - this.lastFetched[labId] < FIVE_MIN
+        this.lastFetched[ticketId] &&
+        now - this.lastFetched[ticketId] < FIVE_MIN
       ) {
-        return;
+        return
       }
 
-      this.loading = true;
-
+      this.loading = true
       try {
-        const comments = await CommentService.getByLab(labId);
-
-        this.commentsByLab[labId] = comments;
-        this.lastFetched[labId] = now;
-
+        const comments = await CommentService.getByTicket(ticketId)
+        this.commentsByTicket[ticketId] = comments
+        this.lastFetched[ticketId] = now
       } catch (error) {
-        console.error("Erro ao carregar comentários:", error);
+        console.error('Erro ao carregar comentários:', error)
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
-    async addComment(commentData) {
+    async addComment(ticketId, commentData) {
       try {
-        const created = await CommentService.create(commentData);
+        const created = await CommentService.create(ticketId, commentData)
 
-        const labId = created.laboratoryId;
-
-        if (!this.commentsByLab[labId]) {
-          this.commentsByLab[labId] = [];
+        if (!this.commentsByTicket[ticketId]) {
+          this.commentsByTicket[ticketId] = []
         }
 
-        this.commentsByLab[labId].unshift(created);
-
-        return created;
-
+        this.commentsByTicket[ticketId].unshift(created)
+        return created
       } catch (error) {
-        console.error("Erro ao criar comentário:", error);
-        throw error;
+        console.error('Erro ao criar comentário:', error)
+        throw error
+      }
+    },
+
+    async deleteComment(ticketId, commentId) {
+      try {
+        await CommentService.delete(ticketId, commentId)
+        if (this.commentsByTicket[ticketId]) {
+          this.commentsByTicket[ticketId] =
+            this.commentsByTicket[ticketId].filter(c => c.id !== commentId)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar comentário:', error)
+        throw error
       }
     }
-
   }
-});
+})
