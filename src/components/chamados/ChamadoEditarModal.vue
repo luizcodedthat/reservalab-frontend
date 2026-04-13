@@ -36,7 +36,7 @@ watch(
       form.value = {
         titulo:     ticket.titulo     ?? '',
         descricao:  ticket.descricao  ?? '',
-        labId:      ticket.labId      ?? '',
+        labId:      parseInt(ticket.labId.replace('lab', ''))      ?? '',
         status:     ticket.status     ?? 'Aberto',
         prioridade: ticket.prioridade ?? 'MEDIUM',
         comentario: ticket.comentario ?? ''
