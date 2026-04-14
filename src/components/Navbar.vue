@@ -15,7 +15,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const userName = computed(() => {
-  const fullName = authStore.user?.displayName || "Usuário"
+  const fullName = authStore.user?.name || "Usuário"
 
   const parts = fullName.trim().split(" ")
 
