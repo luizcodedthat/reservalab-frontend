@@ -2,9 +2,10 @@
 import { ref, watch, computed } from 'vue'
 import { X, ChevronDown, CalendarDays, Clock, FileText, Loader2, CheckCheck, Sparkles, SendHorizontal } from 'lucide-vue-next'
 import { useReservationStore } from '@/stores/useReservationStore'
-import axios from 'axios'
+import { useLabSuggestionStore } from '@/stores/useLabSuggestionStore'
 
 const reservationStore = useReservationStore()
+const labSuggestionStore = useLabSuggestionStore()
 
 const props = defineProps({
   isOpen:   { type: Boolean, default: false },
@@ -14,8 +15,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submitted'])
 
-const isLoading    = ref(false)
-const errorMessage = ref('')
+const isAiLoading = computed(() => labSuggestionStore.loading)
+const aiError     = computed(() => labSuggestionStore.error)
+const aiReason    = computed(() => labSuggestionStore.suggestion?.reason ?? '')
 
 const form = ref({
   labId:       '',
@@ -28,9 +30,6 @@ const form = ref({
 // ── IA ────────────────────────────────────────────────────────────────────────
 const isAiPanelOpen = ref(false)
 const aiPrompt      = ref('')
-const aiReason      = ref('')
-const isAiLoading   = ref(false)
-const aiError       = ref('')
 
 function toggleAiPanel() {
   isAiPanelOpen.value = !isAiPanelOpen.value
@@ -52,20 +51,15 @@ const aiMissingFieldsHint = computed(() => {
 async function handleAiSuggest() {
   if (!aiCanSend.value) return
 
-  aiError.value  = ''
-  aiReason.value = ''
-  isAiLoading.value = true
-
   try {
-    const { data } = await axios.post('ai/labs/suggest', {
+    const result = await labSuggestionStore.suggest({
       date:       form.value.date,
       startTime:  form.value.startTime,
       endTime:    form.value.endTime,
       userPrompt: aiPrompt.value.trim()
     })
 
-    form.value.labId = data.labId
-    aiReason.value   = data.reason
+    form.value.labId = result.labId
 
   } catch (err) {
     aiError.value =
@@ -89,11 +83,7 @@ watch(() => props.isOpen, (val) => {
       endTime:     '',
       description: ''
     }
-    errorMessage.value  = ''
-    isAiPanelOpen.value = false
-    aiPrompt.value      = ''
-    aiReason.value      = ''
-    aiError.value       = ''
+    labSuggestionStore.reset()
   }
 })
 
