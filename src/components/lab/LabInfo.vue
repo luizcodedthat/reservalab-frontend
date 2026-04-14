@@ -39,7 +39,7 @@ const emit = defineEmits(['open-reservation'])
           <div>
             <span class="detail-item__label">Localização</span>
             <span class="detail-item__value">
-              {{ lab.floor != null ? `${lab.floor} Andar` : '' }}{{ lab.building ? `, Bloco ${lab.building}` : '' }}
+              {{ lab.floor != null ? `${lab.floor} Andar` : '' }}{{ lab.building ? `, ${lab.building}` : '' }}
             </span>
           </div>
         </div>
