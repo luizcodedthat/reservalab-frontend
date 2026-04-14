@@ -31,6 +31,7 @@ const {
 
 onMounted(async () => {
   await labStore.loadLabById(labId.value)
+  await labStore.loadLabs()
   await reservationStore.loadReservationsByLab(labId.value)
 })
 </script>
@@ -142,7 +143,7 @@ onMounted(async () => {
     <!-- Modal -->
     <ReservationModal
       :is-open="isReservationModalOpen"
-      :labs="lab ? [lab] : []"
+      :labs="labStore.labs"
       :pre-lab-id="labId"
       @close="isReservationModalOpen = false"
       @submitted="() => {}"
