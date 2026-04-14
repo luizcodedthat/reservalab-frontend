@@ -1,63 +1,88 @@
 <script setup>
-import { onMounted, computed } from 'vue';
-import TicketCard from './TicketCard.vue';
-import { TvIcon } from 'lucide-vue-next';
-import { useTicketStore } from '@/stores/useTicketStore';
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { Plus } from 'lucide-vue-next'
+import { useTicketStore } from '@/stores/useTicketStore'
+import TicketCard from '@/components/lab/TicketCard.vue'
 
 const props = defineProps({
-    labId: String
+  labId: { type: [String, Number], required: true }
 })
 
+const router      = useRouter()
 const ticketStore = useTicketStore()
-const tickets = computed(() => ticketStore.ticketsByLab[props.labId]?.slice(0, 4) ?? [])
 
-onMounted(async () => {
-    await ticketStore.loadTicketsByLabId(props.labId)
-})
+const labKey = computed(() => `lab${props.labId}`)
 
+const tickets = computed(() =>
+  (ticketStore.ticketsByLab?.[labKey.value] ?? []).slice(0, 5)
+)
+
+function goToNewTicket() {
+  router.push({ name: 'Chamados' })
+}
+
+onMounted(() => ticketStore.loadTicketsByLabId(labKey.value))
 </script>
 
 <template>
-    <div class="card-list">
-
-        <div class="cards-list" v-if="!ticketStore.loading && tickets.length > 0">
-            <TicketCard v-for="ticket in tickets" :key="ticket.id" :title="ticket.titulo" :message="ticket.descricao"
-                :status="ticket.status" :createdDate="ticket.createdAt" />
-
-        </div>
-
-        <div class="no-tickets" v-else-if="!ticketStore.loading && tickets.length === 0">
-            <TvIcon size="48" color="#64748B" />
-            <p>Tudo limpo! Nenhum chamado recente.</p>
-        </div>
-
-        <div class="no-tickets" v-else>
-            <TvIcon size="48" color="#64748B" />
-            <p>Carregando...</p>
-        </div>
-
+  <section class="tickets-section">
+    <div class="tickets-section__header">
+      <h2 class="section-title">Manutenção e Chamados</h2>
+      <button class="add-btn" @click="goToNewTicket">
+        <Plus :size="14" />
+        Novo Chamado
+      </button>
     </div>
 
+    <div v-if="tickets.length > 0" class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Título &amp; Descrição</th>
+            <th>Status</th>
+            <th>Autor</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          <TicketCard
+            v-for="ticket in tickets"
+            :key="ticket.id"
+            :ticket="ticket"
+          />
+        </tbody>
+      </table>
+    </div>
+
+    <p v-else class="empty-text">Nenhum chamado registrado para este laboratório.</p>
+  </section>
 </template>
 
 <style scoped>
-.cards-list {
-    padding: 10px 4px;
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
+.tickets-section { display: flex; flex-direction: column; gap: 1rem; }
+.tickets-section__header {
+  display: flex; justify-content: space-between; align-items: center;
 }
-
-.no-tickets {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 5px;
-    margin: auto;
-    width: fit-content;
+.section-title {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 1.25rem; font-weight: 700; color: #1a1c1c;
 }
-
-.no-tickets p {
-    color: hsl(215, 19%, 35%);
+.add-btn {
+  display: flex; align-items: center; gap: 0.375rem;
+  background: none; border: none; cursor: pointer;
+  color: #006b1f; font-size: 0.875rem; font-weight: 700;
 }
+.add-btn:hover { text-decoration: underline; }
+.table-wrap { overflow-x: auto; }
+.table {
+  width: 100%; border-collapse: collapse; text-align: left;
+}
+.table thead tr {
+  font-size: 0.625rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: #3f4a3c;
+  border-bottom: 1px solid rgba(190,202,185,0.2);
+}
+.table th { padding-bottom: 1rem; }
+.empty-text { color: #6f7a6b; font-size: 0.875rem; }
 </style>

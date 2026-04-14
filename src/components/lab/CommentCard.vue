@@ -1,76 +1,69 @@
 <script setup>
-
-import { ArrowBigUp } from 'lucide-vue-next';
-import { defineProps } from 'vue';
+import { ThumbsUp, ThumbsDown, User } from 'lucide-vue-next'
 
 defineProps({
-    profilePicture: {
-        default: '',
-        type: String
-    },
-    authorName: String,
-    commentText: String,
-    upvoteCount: Number
+  comment: { type: Object, required: true }
 })
 
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return ''
+  const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000)
+  if (diff < 1)    return 'agora mesmo'
+  if (diff < 60)   return `há ${diff} min`
+  if (diff < 1440) return `há ${Math.floor(diff / 60)}h`
+  return `há ${Math.floor(diff / 1440)} dias`
+}
 </script>
 
 <template>
-    <div class="comment-box">
-        <div class="user-comment-section">
-            <div class="profile-picture">
-                <img class="user-profile-picture" :src="profilePicture" :alt="authorName">
-            </div>
-            <div class="text-section">
-                <h3 class="author-name">{{ authorName }}</h3>
-                <p class="comment-text">{{ commentText }}</p>
-            </div>
-        </div>
-        <div class="upvote-section">
-            <ArrowBigUp />
-            <p class="upvote-count">{{ upvoteCount }}</p>
-        </div>
+  <div class="comment">
+    <div class="comment__avatar">
+      <User :size="18" />
     </div>
-
+    <div class="comment__body">
+      <div class="comment__header">
+        <span class="comment__author">{{ comment.authorName ?? 'Usuário' }}</span>
+        <span class="comment__time">{{ formatTimeAgo(comment.createdAt) }}</span>
+      </div>
+      <p class="comment__text">{{ comment.content }}</p>
+      <div class="comment__actions">
+        <button class="vote-btn">
+          <ThumbsUp :size="15" />
+          {{ comment.upvotes ?? 0 }}
+        </button>
+        <button class="vote-btn">
+          <ThumbsDown :size="15" />
+          {{ comment.downvotes ?? 0 }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.comment-box {
-    padding: 5px 0;
-    margin-bottom: 5px;
+.comment { display: flex; gap: 1rem; }
+.comment__avatar {
+  width: 3rem; height: 3rem; border-radius: 9999px;
+  background: #e8e8e8; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; color: #3f4a3c;
+  border: 2px solid #e8e8e8;
 }
-
-.user-comment-section {
-    display: flex;
+.comment__body {
+  flex: 1; background: #f3f3f4;
+  padding: 1.5rem; border-radius: 0.75rem 0.75rem 0.75rem 0;
 }
-
-.profile-picture {
-    padding: 5px 0 0 0;
+.comment__header {
+  display: flex; justify-content: space-between; margin-bottom: 0.5rem;
 }
-
-.user-profile-picture {
-    border-radius: 50%;
-    width: 48px;
+.comment__author { font-weight: 700; color: #1a1c1c; }
+.comment__time   { font-size: 0.75rem; color: #3f4a3c; }
+.comment__text   { color: #3f4a3c; line-height: 1.6; margin-bottom: 1rem; }
+.comment__actions { display: flex; gap: 1rem; }
+.vote-btn {
+  display: flex; align-items: center; gap: 0.375rem;
+  background: none; border: none; cursor: pointer;
+  font-size: 0.875rem; font-weight: 700; color: #3f4a3c;
+  transition: color 0.15s;
 }
-
-.text-section {
-    padding: 10px;
-    margin-bottom: 5px;
-}
-
-.author-name {
-    font-size: var(--font-size-base);
-    font-weight: 500;
-    margin-bottom: 5px;
-}
-
-.comment-text {
-    font-size: var(--font-size-base);
-}
-
-.upvote-section {
-    display: flex;
-    gap: 10px;
-    padding: 0 10px 0 60px;
-}
+.vote-btn:hover { color: #006b1f; }
 </style>

@@ -30,7 +30,7 @@ const labName = computed(() => {
 </script>
 
 <template>
-  <pre>{{ ticket }}</pre>
+
   <div class="chamado-card" :class="{ 'chamado-card--finished': statusConfig.isFinished }">
 
     <div class="chamado-card__header">

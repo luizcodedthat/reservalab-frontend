@@ -1,74 +1,49 @@
 <script setup>
-import { onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import CommentCard from './CommentCard.vue'
+import { computed, onMounted } from 'vue'
 import { useCommentStore } from '@/stores/useCommentStore'
-import { Leaf, Loader2 } from 'lucide-vue-next'
+import CommentCard from '@/components/lab/CommentCard.vue'
+import CommentForm from '@/components/lab/CommentForm.vue'
 
-const route = useRoute()
+const props = defineProps({
+  labId: { type: [String, Number], required: true }
+})
+
 const commentStore = useCommentStore()
 
-const labId = computed(() => Number(route.params.id))
+const labKey = computed(() => `lab${props.labId}`)
 
-const labComments = computed(() => {
-  const comments =
-    commentStore.getCommentsByLab?.(labId.value) ||
-    commentStore.commentsByLab?.[labId.value] ||
-    []
+const comments = computed(() =>
+  commentStore.commentsByLab?.[labKey.value] ?? []
+)
 
-  return [...comments].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0))
-})
+async function handleSubmitted() {
+  await commentStore.loadComments(labKey.value)
+}
 
-onMounted(async () => {
-  await commentStore.loadComments(labId.value)
-})
+onMounted(() => commentStore.loadComments(labKey.value))
 </script>
 
 <template>
-  <div class="cards-list">
-    <CommentCard
-      v-for="comment in labComments"
-      :key="comment.id"
-      :authorName="comment.authorName"
-      :profilePicture="'https://picsum.photos/50/50?random=' + comment.id"
-      :commentText="comment.content"
-      :upvoteCount="comment.upvotes ?? 0"
-    />
-  </div>
+  <section class="comments-section">
+    <h2 class="section-title">Comentários e Feedbacks</h2>
 
-  <div v-if="commentStore.loading || labComments.length === 0" class="loading-or-empty">
-    <div class="message-box" v-if="commentStore.loading">
-      <Loader2 size="48" color="#64748B" />
-      <p class="not-loaded-text">Carregando comentários...</p>
+    <div v-if="comments.length > 0" class="comments-list">
+      <CommentCard
+        v-for="comment in comments"
+        :key="comment.id"
+        :comment="comment"
+      />
     </div>
 
-    <div class="message-box" v-else>
-      <Leaf size="48" color="#64748B" />
-      <p class="not-loaded-text">Seja o primeiro a comentar!</p>
-    </div>
-  </div>
+    <CommentForm :lab-id="labId" @submitted="handleSubmitted" />
+  </section>
 </template>
 
 <style scoped>
-.cards-list {
-  padding: 10px 0;
+.comments-section { display: flex; flex-direction: column; gap: 1.5rem; }
+.section-title {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 1.25rem; font-weight: 700; color: #1a1c1c;
 }
-
-.loading-or-empty {
-  margin: 20px 0;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-}
-
-.message-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.message-box p {
-  color: hsl(215, 19%, 35%);
-}
+.comments-list { display: flex; flex-direction: column; gap: 2rem; }
 </style>
