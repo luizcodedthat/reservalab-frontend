@@ -1,196 +1,182 @@
 <script setup>
-import { defineEmits } from "vue";
+import { computed } from 'vue'
+import {
+  FlaskConical, User, Wrench, UserCheck, Eye, Info
+} from 'lucide-vue-next'
 
 const props = defineProps({
-  chamado: {
-    type: Object,
-    required: true,
-  },
-});
+  ticket: { type: Object, required: true },
+  labsMap: { type: Object, default: () => ({}) }
+})
 
-const emits = defineEmits(["abrir-modal"]);
+const emit = defineEmits(['view', 'attend'])
 
-const limitarTexto = (texto = "", limite = 0) => {
-  if (!texto) return "";
-  return texto.length > limite ? texto.substring(0, limite) + "..." : texto;
-};
+const STATUS_CONFIG = {
+  'Aberto':       { badgeClass: 'badge--open',        ActionIcon: Wrench,    actionLabel: 'Atender chamado', isFinished: false },
+  'Em andamento': { badgeClass: 'badge--in-progress',  ActionIcon: UserCheck, actionLabel: 'Atender chamado', isFinished: false },
+  'Concluído':    { badgeClass: 'badge--concluded',    ActionIcon: Eye,       actionLabel: 'Ver informações', isFinished: true  },
+  'Fechado':      { badgeClass: 'badge--closed',       ActionIcon: Info,      actionLabel: 'Ver informações', isFinished: true  },
+}
 
-const abrir = () => {
-  emits("abrir-modal", props.chamado);
-};
+const statusConfig = computed(() =>
+  STATUS_CONFIG[props.ticket.status] ?? STATUS_CONFIG['Aberto']
+)
+
+const labName = computed(() => {
+  const id = props.ticket.labId
+  if (!id) return ''
+  return props.labsMap[id] ?? id.replace('lab', 'LAB-').toUpperCase()
+})
 </script>
 
 <template>
-  <div class="chamado-card">
-    <div class="chamado-header">
-      <span class="data">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M8 2v4" />
-          <path d="M16 2v4" />
-          <rect width="18" height="18" x="3" y="4" rx="2" />
-          <path d="M3 10h18" />
-          <path d="M8 14h.01" />
-          <path d="M12 14h.01" />
-          <path d="M16 14h.01" />
-          <path d="M8 18h.01" />
-          <path d="M12 18h.01" />
-          <path d="M16 18h.01" />
-        </svg>
-        {{
-          chamado.data ||
-          (chamado.createdAt ? new Date(chamado.createdAt).toLocaleDateString("pt-BR") : "Sem data")
-        }}
+
+  <div class="chamado-card" :class="{ 'chamado-card--finished': statusConfig.isFinished }">
+
+    <div class="chamado-card__header">
+      <span class="chamado-card__date">{{ ticket.data }}</span>
+      <span class="chamado-card__badge" :class="statusConfig.badgeClass">
+        {{ ticket.status }}
       </span>
-
-      <span :class="['status', (chamado.status || '').toLowerCase().replace(' ', '-')]">{{
-        chamado.status
-      }}</span>
-
-      <span class="id-chamado"> LAB-{{ chamado.labId.replace("lab", "").padStart(2, "0") }} </span>
     </div>
 
-    <h3>{{ limitarTexto(chamado.titulo, 30) }}</h3>
-    <p>{{ limitarTexto(chamado.descricao, 60) }}</p>
+    <div class="chamado-card__body">
+      <div v-if="labName" class="chamado-card__lab">
+        <FlaskConical :size="14" class="chamado-card__lab-icon" />
+        <span class="chamado-card__lab-name">{{ labName }}</span>
+      </div>
+      <h3 class="chamado-card__title">{{ ticket.titulo }}</h3>
+      <p class="chamado-card__description">{{ ticket.descricao }}</p>
+    </div>
 
-    <button
-      v-if="
-        ['Aberto', 'Em andamento', 'Em andamento'.toLowerCase()].includes(
-          (chamado.status || '').toString()
-        ) ||
-        (chamado.status && chamado.status.toLowerCase().includes('aberto'))
-      "
-      class="btn-atender"
-      @click="abrir"
-    >
-      Atender chamado
-    </button>
-    <button v-else class="btn-info" @click="abrir">Ver informações</button>
+    <div class="chamado-card__footer">
+      <div class="chamado-card__author">
+        <div class="chamado-card__avatar">
+          <User :size="16" />
+        </div>
+        <span class="chamado-card__author-name">{{ ticket.authorId ?? '—' }}</span>
+      </div>
+
+      <button
+        v-if="!statusConfig.isFinished"
+        class="btn btn--primary"
+        @click="emit('attend', ticket)"
+      >
+        <component :is="statusConfig.ActionIcon" :size="16" />
+        {{ statusConfig.actionLabel }}
+      </button>
+
+      <button v-else class="btn btn--outlined" @click="emit('view', ticket)">
+        <component :is="statusConfig.ActionIcon" :size="16" />
+        {{ statusConfig.actionLabel }}
+      </button>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
 .chamado-card {
-  background: #fff;
-  border: 1px #cbd5e1 solid;
-  border-radius: 6px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(190, 202, 185, 0.15);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
+  height: 100%;
+  transition: box-shadow 0.2s;
+}
+.chamado-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.chamado-card--finished { opacity: 0.75; transition: opacity 0.2s; }
+.chamado-card--finished:hover { opacity: 1; }
+
+.chamado-card__header {
+  display: flex;
   justify-content: space-between;
-  transition: box-shadow 0.3s ease;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.chamado-card__date {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #3f4a3c;
+}
+.chamado-card__badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.625rem;
+  border-radius: 0.25rem;
+}
+.badge--open        { background: #ffdad6; color: #93000d; }
+.badge--in-progress { background: #fef3c7; color: #92400e; }
+.badge--concluded   { background: #8dfa8f; color: #005316; }
+.badge--closed      { background: #e2e2e2; color: #3f4a3c; }
+
+.chamado-card__body { margin-bottom: 1rem; }
+.chamado-card__lab { display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.25rem; }
+.chamado-card__lab-icon { color: #006b1f; }
+.chamado-card__lab-name { font-size: 0.75rem; font-weight: 700; color: #006b1f; }
+.chamado-card__title {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1c1c;
+  line-height: 1.3;
+  margin-top: 0.25rem;
+}
+.chamado-card__description {
+  font-size: 0.875rem;
+  color: #3f4a3c;
+  margin-top: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.chamado-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+.chamado-card__footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(226,226,226,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-
-.chamado-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  gap: 4px 12px;
-  align-items: start;
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: #555;
-}
-
-.chamado-header .data {
-  grid-column: 1;
-  grid-row: 1;
+.chamado-card__author { display: flex; align-items: center; gap: 0.75rem; }
+.chamado-card__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: #e8e8e8;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  color: #3f4a3c;
 }
+.chamado-card__author-name { font-size: 0.75rem; font-weight: 500; color: #1a1c1c; }
 
-.chamado-header .status {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  justify-self: end;
-  align-self: center;
-}
-
-.chamado-header .id-chamado {
-  grid-column: 1;
-  grid-row: 4;
-  font-weight: 600;
-  color: var(--color-gray-text);
-}
-
-.status {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.status.aberto {
-  background: #fde68a;
-  color: #92400e;
-}
-.status.em-andamento {
-  background: #fdba74;
-  color: #9a3412;
-}
-.status.concluído {
-  background: #bbf7d0;
-  color: #166534;
-}
-.status.fechado {
-  background: #fecaca;
-  color: #991b1b;
-}
-
-.chamado-card h3 {
-  font-weight: 600;
-  font-size: 15px;
-  color: #111827;
-  margin: 4px 0;
-}
-
-.chamado-card p {
-  font-size: 13px;
-  color: #4b5563;
-  line-height: 1.4;
-}
-
-.chamado-card button {
-  margin-top: 12px;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 14px;
+.btn {
+  width: 100%;
+  padding: 0.625rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   cursor: pointer;
-  transition: 0.2s;
-}
-
-.btn-atender {
-  background: var(--color-primary, #2563eb);
-  color: #fff;
+  transition: background 0.15s, transform 0.1s;
   border: none;
 }
-.btn-atender:hover {
-  background: #16a34a;
-}
-
-.btn-info {
-  background: #fff;
-  border: 1px solid #d1d5db;
-  color: #374151;
-}
-.btn-info:hover {
-  background: #f9fafb;
-}
-
-
-
+.btn:active { transform: scale(0.97); }
+.btn--primary { background: #006b1f; color: #ffffff; }
+.btn--primary:hover { background: #005316; }
+.btn--outlined { background: transparent; color: #3f4a3c; border: 1px solid #becab9; }
+.btn--outlined:hover { background: #f3f3f4; }
 </style>

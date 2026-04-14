@@ -48,16 +48,23 @@ export class Chamado {
 
 
   toAPI() {
-    return {
-      laboratoryId:      this.labId ? parseInt(this.labId.replace('lab', '')) : null,
-      createdByUserId:   this.authorId ?? 1,
-      title:             this.titulo,
-      description:       this.descricao,
-      status:            Chamado.statusParaAPI[this.status] ?? 'OPEN',
-      priority:          this.prioridade ?? 'MEDIUM',
-      resolutionComment: this.comentario ?? ''
-    }
+  // labId pode vir como 'lab4' (string) ou 4 (número)
+  const laboratoryId = this.labId
+    ? typeof this.labId === 'string'
+      ? parseInt(this.labId.replace('lab', ''))
+      : Number(this.labId)
+    : null
+
+  return {
+    laboratoryId,
+    createdByUserId:   this.authorId ?? 1,
+    title:             this.titulo,
+    description:       this.descricao,
+    status:            Chamado.statusParaAPI[this.status] ?? 'OPEN',
+    priority:          this.prioridade ?? 'MEDIUM',
+    resolutionComment: this.comentario ?? ''
   }
+}
 
 
   static fromAPI(ticket) {

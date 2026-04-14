@@ -1,378 +1,375 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { DatePicker } from 'v-calendar'
-import 'v-calendar/style.css'
-import { X } from 'lucide-vue-next'
-
+import { ref, watch, computed } from 'vue'
+import { X, ChevronDown, CalendarDays, Clock, FileText, Loader2, CheckCheck } from 'lucide-vue-next'
 import { useReservationStore } from '@/stores/useReservationStore'
-import { useAuthStore } from '@/stores/useAuthStore'
 
 const reservationStore = useReservationStore()
-const authStore = useAuthStore()
-
-const emit = defineEmits(['close'])
 
 const props = defineProps({
-  show: { type: Boolean, default: false },
-  labInfo: { type: Object, required: true }
+  isOpen:    { type: Boolean, default: false },
+  labs:      { type: Array, default: () => [] },
+  preLabId:  { type: [String, Number], default: null }
 })
 
-const selectedDate = ref(new Date())
-const startTime = ref('')
-const endTime = ref('')
-const message = ref('')
-const conflictList = ref([])
+const emit = defineEmits(['close', 'submitted'])
 
-function closeModal() {
-  emit('close')
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+const form = ref({
+  labId: '',
+  date: '',
+  startTime: '',
+  endTime: '',
+  description: ''
+})
+
+// 🔥 hoje (para bloquear no input)
+const today = computed(() => new Date().toISOString().slice(0, 10))
+
+watch(() => props.isOpen, (val) => {
+  if (val) {
+    form.value = {
+      labId: props.preLabId ?? '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      description: ''
+    }
+    errorMessage.value = ''
+  }
+})
+
+function handleClose() {
+  if (!isLoading.value) emit('close')
 }
 
-function pad(n) {
-  return String(n).padStart(2, '0')
-}
-
-function toDateString(date) {
-  if (!date) return ''
-  const year = date.getFullYear()
-  const month = pad(date.getMonth() + 1)
-  const day = pad(date.getDate())
-  return `${year}-${month}-${day}`
-}
-
-function timeToMinutes(timeStr) {
-  if (!timeStr) return 0
-  const [h, m] = timeStr.slice(0, 5).split(':').map(Number)
+// 🔥 HELPERS
+function toMinutes(time) {
+  const [h, m] = time.split(':').map(Number)
   return h * 60 + m
 }
 
-function normalizeTime(timeStr) {
-  return timeStr?.length === 5 ? `${timeStr}:00` : timeStr
-}
+function hasConflict(newStart, newEnd, reservations) {
+  const start = toMinutes(newStart)
+  const end   = toMinutes(newEnd)
 
-function formatTime(timeStr) {
-  return timeStr ? timeStr.slice(0, 5) : ''
-}
+  return reservations.some(r =>
+    r.timeBlocks?.some(block => {
+      const bStart = toMinutes(block.startTime)
+      const bEnd   = toMinutes(block.endTime)
 
-function rangesOverlap(startA, endA, startB, endB) {
-  return timeToMinutes(startA) < timeToMinutes(endB) &&
-         timeToMinutes(endA) > timeToMinutes(startB)
-}
-
-const selectedDateStr = computed(() => toDateString(selectedDate.value))
-const labId = computed(() => Number(props.labInfo?.id))
-
-const dayReservations = computed(() => {
-  const all = reservationStore.reservations || []
-  return all.filter(res =>
-    Number(res.laboratoryId) === labId.value &&
-    res.reservationDate === selectedDateStr.value
-  )
-})
-
-const busyBlocks = computed(() => {
-  const blocks = []
-
-  dayReservations.value.forEach(reservation => {
-    ;(reservation.timeBlocks || []).forEach(block => {
-      blocks.push({
-        reservationId: reservation.id,
-        requestedByName: reservation.requestedByName,
-        purpose: reservation.purpose,
-        startTime: formatTime(block.startTime),
-        endTime: formatTime(block.endTime),
-        blockOrder: block.blockOrder
-      })
+      return start < bEnd && end > bStart
     })
-  })
-
-  return blocks
-})
-
-const matchingConflicts = computed(() => {
-  if (!startTime.value || !endTime.value) return []
-
-  return busyBlocks.value.filter(block =>
-    rangesOverlap(startTime.value, endTime.value, block.startTime, block.endTime)
   )
-})
-
-function validateInterval() {
-  conflictList.value = []
-
-  if (!startTime.value || !endTime.value) {
-    return false
-  }
-
-  if (timeToMinutes(startTime.value) >= timeToMinutes(endTime.value)) {
-    conflictList.value.push({
-      startTime: startTime.value,
-      endTime: endTime.value,
-      requestedByName: 'Horário inválido',
-      purpose: 'A hora inicial deve ser menor que a hora final'
-    })
-    return false
-  }
-
-  conflictList.value = matchingConflicts.value
-  return conflictList.value.length === 0
 }
 
-async function confirmReservation() {
-  if (!authStore.user) {
-    alert('Você precisa estar autenticado para reservar.')
+function isPastDateTime(date, time) {
+  const now = new Date()
+  const selected = new Date(`${date}T${time}`)
+  return selected < now
+}
+
+// 🚀 SUBMIT
+async function handleSubmit() {
+  errorMessage.value = ''
+
+  // validações básicas
+  if (!form.value.labId)       { errorMessage.value = 'Selecione o laboratório.'; return }
+  if (!form.value.date)        { errorMessage.value = 'Informe a data da reserva.'; return }
+  if (!form.value.startTime)   { errorMessage.value = 'Informe o horário de início.'; return }
+  if (!form.value.endTime)     { errorMessage.value = 'Informe o horário de término.'; return }
+  if (!form.value.description.trim()) {
+    errorMessage.value = 'Descreva a atividade.'
     return
   }
 
-  if (!validateInterval()) {
+  // 🚫 data passada
+  if (form.value.date < today.value) {
+    errorMessage.value = 'Não é possível reservar em datas passadas.'
     return
   }
 
-  const reservationData = {
-    laboratoryId: labId.value,
-    requestedByUserId: 1, // Mockado
-    requestedByName: authStore.user.displayName,
-    reservationDate: selectedDateStr.value,
-    purpose: message.value.trim(),
-    timeBlocks: [
-      {
-        startTime: normalizeTime(startTime.value),
-        endTime: normalizeTime(endTime.value),
-        blockOrder: 1,
-        durationMinutes: timeToMinutes(endTime.value) - timeToMinutes(startTime.value)
-      }
-    ]
+  // 🚫 horário passado (hoje)
+  if (isPastDateTime(form.value.date, form.value.startTime)) {
+    errorMessage.value = 'Não é possível reservar horários no passado.'
+    return
   }
+
+  // 🚫 horário inválido
+  if (form.value.startTime >= form.value.endTime) {
+    errorMessage.value = 'O horário final deve ser maior que o inicial.'
+    return
+  }
+
+  isLoading.value = true
 
   try {
-    await reservationStore.addReservation(reservationData)
+    // 🔥 garante dados atualizados
+    await reservationStore.loadReservationsByLab(form.value.labId)
 
-    startTime.value = ''
-    endTime.value = ''
-    message.value = ''
-    conflictList.value = []
+    // 🔥 filtrar reservas do mesmo dia
+    const sameDayReservations = reservationStore.reservations.filter(r =>
+      Number(r.laboratoryId) === Number(form.value.labId) &&
+      r.reservationDate === form.value.date
+    )
 
-    closeModal()
-  } catch (e) {
-    alert('Erro ao criar reserva.')
-    console.error(e)
+    // 🚫 conflito
+    const conflict = hasConflict(
+      form.value.startTime,
+      form.value.endTime,
+      sameDayReservations
+    )
+
+    if (conflict) {
+      errorMessage.value = 'Já existe uma reserva nesse horário.'
+      return
+    }
+
+    // 🚀 criar reserva
+    await reservationStore.addReservation({
+      laboratoryId: Number(form.value.labId),
+
+      requestedByUserId: 2, // depois integrar auth
+      requestedByName: 'Usuário',
+
+      reservationDate: form.value.date,
+      purpose: form.value.description,
+
+      timeBlocks: [
+        {
+          startTime: form.value.startTime,
+          endTime: form.value.endTime,
+          blockOrder: 1
+        }
+      ]
+    })
+
+    emit('submitted')
+    emit('close')
+
+  } catch (err) {
+    console.error('Erro ao criar reserva:', err)
+
+    errorMessage.value =
+      err?.response?.data?.message ||
+      err.message ||
+      'Não foi possível confirmar a reserva.'
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
 
 <template>
-  <Transition name="modal">
-    <div v-if="show" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal">
-        <button class="close-btn" type="button" @click="closeModal" aria-label="Fechar modal">
-          <X size="18" />
-        </button>
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
+        <div class="modal">
 
-        <h1 class="modal-title">Reservar Laboratório</h1>
-        <p class="modal-subtitle">{{ labInfo?.name }}</p>
+          <!-- Header -->
+          <div class="modal__header">
+            <div>
+              <h2 class="modal__title">Nova Reserva de Laboratório</h2>
+              <p class="modal__subtitle">
+                Preencha os detalhes para agendar seu horário.
+              </p>
+            </div>
 
-        <div class="form">
-          <div class="form-group">
-            <label class="label">Data</label>
-            <DatePicker
-              expanded
-              locale="pt-BR"
-              :first-day-of-week="1"
-              v-model="selectedDate"
-              mode="date"
-              is-required
-            />
+            <button class="modal__close-btn" :disabled="isLoading" @click="handleClose">
+              <X :size="20" />
+            </button>
           </div>
 
-          <div class="form-group">
-            <label class="label">Início</label>
-            <input
-              v-model="startTime"
-              class="input"
-              type="time"
-            />
+          <!-- Body -->
+          <div class="modal__body">
+
+            <!-- LAB -->
+            <div class="form-group">
+              <label class="form-label">Selecionar Laboratório</label>
+
+              <div class="select-wrapper">
+                <select v-model="form.labId" class="form-select" :disabled="isLoading">
+                  <option value="" disabled>Selecione</option>
+
+                  <option v-for="lab in labs" :key="lab.id" :value="lab.id">
+                    {{ lab.code ? `${lab.code} - ${lab.name}` : lab.name }}
+                  </option>
+                </select>
+
+                <ChevronDown :size="18" class="select-icon" />
+              </div>
+            </div>
+
+            <!-- DATA + HORÁRIO -->
+            <div class="form-row-3">
+
+              <div class="form-group">
+                <label class="form-label">
+                  <CalendarDays :size="12" /> Data
+                </label>
+
+                <!-- 🔥 BLOQUEIA DATA PASSADA -->
+                <input
+                  v-model="form.date"
+                  type="date"
+                  class="form-input"
+                  :min="today"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <Clock :size="12" /> Início
+                </label>
+
+                <input
+                  v-model="form.startTime"
+                  type="time"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <Clock :size="12" /> Fim
+                </label>
+
+                <input
+                  v-model="form.endTime"
+                  type="time"
+                  class="form-input"
+                />
+              </div>
+
+            </div>
+
+            <!-- DESCRIÇÃO -->
+            <div class="form-group">
+              <label class="form-label">
+                <FileText :size="12" /> Descrição
+              </label>
+
+              <textarea
+                v-model="form.description"
+                class="form-textarea"
+                rows="3"
+                placeholder="Ex: Aula prática..."
+              />
+            </div>
+
+            <p v-if="errorMessage" class="error-msg">
+              {{ errorMessage }}
+            </p>
+
           </div>
 
-          <div class="form-group">
-            <label class="label">Fim</label>
-            <input
-              v-model="endTime"
-              class="input"
-              type="time"
-            />
+          <!-- Footer -->
+          <div class="modal__footer">
+            <button class="btn btn--cancel" @click="handleClose">
+              Cancelar
+            </button>
+
+            <button class="btn btn--submit" @click="handleSubmit" :disabled="isLoading">
+              <Loader2 v-if="isLoading" :size="16" class="spin" />
+              <CheckCheck v-else :size="16" />
+              {{ isLoading ? 'Confirmando...' : 'Confirmar Reserva' }}
+            </button>
           </div>
 
-          <div class="form-group">
-            <label class="label">Mensagem</label>
-            <textarea
-              class="textarea"
-              v-model="message"
-              rows="2"
-              placeholder="Ex.: ADS4M, Apresentação de TCC, Mulheres Mil"
-            ></textarea>
-            <p class="hint">Mensagem curta informando o propósito da reserva.</p>
-          </div>
-
-          <div v-if="conflictList.length" class="conflict-box">
-            <h3 class="conflict-title">Conflitos encontrados:</h3>
-
-            <ul class="conflict-list">
-              <li v-for="c in conflictList" :key="`${c.reservationId}-${c.blockOrder}`">
-                {{ c.startTime }} até {{ c.endTime }}
-                <span v-if="c.requestedByName"> — {{ c.requestedByName }}</span>
-                <span v-if="c.purpose"> — {{ c.purpose }}</span>
-              </li>
-            </ul>
-
-            <p class="conflict-hint">Escolha outro horário.</p>
-          </div>
-
-          <button class="btn-primary mt-4" @click="confirmReservation">
-            Confirmar Reserva
-          </button>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(3px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(26,28,28,0.4); backdrop-filter: blur(6px); padding: 1rem;
 }
-
 .modal {
-  position: relative;
-  background: white;
-  padding: 2rem;
-  width: 450px;
-  border-radius: 16px;
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 0.2s ease;
+  background: #ffffff; width: 100%; max-width: 36rem;
+  border-radius: 0.75rem; box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+  display: flex; flex-direction: column; max-height: 90vh; overflow: hidden;
 }
+.modal__header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 1.75rem 2rem 1.25rem;
+  border-bottom: 1px solid rgba(190,202,185,0.15);
+  background: #f9f9f9;
+}
+.modal__title {
+  font-family: 'Public Sans', sans-serif; font-size: 1.375rem;
+  font-weight: 800; color: #1a1c1c; letter-spacing: -0.02em;
+}
+.modal__subtitle { font-size: 0.875rem; color: #3f4a3c; margin-top: 0.25rem; }
+.modal__close-btn {
+  padding: 0.375rem; border-radius: 9999px; border: none;
+  background: transparent; cursor: pointer; color: #3f4a3c;
+  display: flex; transition: background 0.15s;
+}
+.modal__close-btn:hover { background: #e8e8e8; }
+.modal__close-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.close-btn {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9999px;
-  border: 1px solid #E5E7EB;
-  background: white;
-  color: #64748B;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+.modal__body {
+  padding: 1.5rem 2rem; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 1.25rem;
 }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 480px) {
+  .form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+}
+.form-label {
+  font-size: 0.625rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: #3f4a3c;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: #f3f3f4; border: none;
+  border-radius: 0.5rem; padding: 0.75rem 1rem;
+  font-size: 0.875rem; color: #1a1c1c;
+  font-family: 'Inter', sans-serif; outline: none; transition: box-shadow 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { box-shadow: 0 0 0 2px #006b1f; }
+.form-input:disabled, .form-select:disabled, .form-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-textarea { resize: none; }
+.select-wrapper { position: relative; }
+.form-select { appearance: none; cursor: pointer; padding-right: 2.5rem; }
+.select-icon { position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #3f4a3c; }
 
-.close-btn:hover {
-  background: #F8FAFC;
-  color: #0F172A;
-  border-color: #CBD5E1;
-}
+.error-msg { font-size: 0.8rem; color: #ba1a1a; font-weight: 500; }
 
-.modal-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  padding-right: 2rem;
+.modal__footer {
+  padding: 1rem 2rem 1.75rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  justify-content: flex-end;
 }
-
-.modal-subtitle {
-  color: #64748B;
-  margin-bottom: 1.5rem;
+@media (min-width: 480px) {
+  .modal__footer { flex-direction: row; }
 }
-
-.form-group {
-  margin-bottom: 1rem;
-  display: flex;
-  flex-direction: column;
+.btn {
+  padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+  font-size: 0.875rem; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem; border: none; transition: opacity 0.15s, transform 0.1s;
 }
-
-.label {
-  font-weight: 500;
-  margin-bottom: 0.35rem;
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn--cancel { background: transparent; color: #3f4a3c; }
+.btn--cancel:hover:not(:disabled) { background: #e8e8e8; }
+.btn--submit {
+  flex: 1; background: linear-gradient(135deg, #006b1f, #0b872b);
+  color: #ffffff; box-shadow: 0 4px 12px rgba(0,107,31,0.2);
 }
-
-.select,
-.textarea,
-.input {
-  width: 100%;
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
-  padding: 0.6rem;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
-}
-
-.select:focus,
-.textarea:focus,
-.input:focus {
-  border-color: #6366F1;
-  outline: none;
-}
-
-.hint {
-  color: #6B7280;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-}
-
-.btn-primary {
-  width: 100%;
-  background: #4F46E5;
-  color: white;
-  padding: 0.75rem;
-  border-radius: 8px;
-  font-weight: 500;
-  transition: 0.2s;
-}
-
-.btn-primary:hover {
-  background: #4338CA;
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.conflict-box {
-  margin-top: 15px;
-  margin-bottom: 15px;
-  padding: 12px;
-  background: #ffe5e5;
-  border: 1px solid #ffbaba;
-  border-radius: 6px;
-}
-
-.conflict-title {
-  font-weight: bold;
-  margin-bottom: 6px;
-  color: #a10000;
-}
-
-.conflict-list {
-  margin-left: 16px;
-}
-
-.conflict-hint {
-  margin-top: 8px;
-  color: #b00000;
-  font-size: 0.9rem;
-}
+.btn--submit:hover:not(:disabled) { opacity: 0.92; }
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
 </style>

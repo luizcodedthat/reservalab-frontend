@@ -1,322 +1,394 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch } from 'vue'
+import { useTicketStore } from '@/stores/useTicketStore'
+import { useAuthStore } from '@/stores/useAuthStore'
+import {
+  X, ChevronDown, CloudUpload, CheckCircle2,
+  AlertCircle, Ticket, Loader2
+} from 'lucide-vue-next'
 
 const props = defineProps({
-  chamado: Object,
-  filtros: Array,
-  visivel: Boolean,
-});
+  isOpen: { type: Boolean, default: false },
+  labs:   { type: Array, default: () => [] }
+})
 
-const emit = defineEmits(["fechar", "salvar"]);
+const emit = defineEmits(['close', 'submitted'])
 
-const novoStatus = ref("");
-const comentario = ref("");
+const ticketStore = useTicketStore()
+const authStore   = useAuthStore()
 
-watch(
-  () => props.chamado,
-  (val) => {
-    if (!val) return;
+const form = ref({
+  titulo:    '',
+  labId:     '',
+  descricao: '',
+  attachment: null
+})
 
-    novoStatus.value = val.status ?? "";
+const errorMessage = ref('')
+const isDragging   = ref(false)
 
-    comentario.value = val.comentario ?? "";
-  },
-  { immediate: true }
-);
+watch(() => props.isOpen, (val) => {
+  if (!val) resetForm()
+})
 
-const fecharModal = () => emit("fechar");
+function resetForm() {
+  form.value = { titulo: '', labId: '', descricao: '', attachment: null }
+  errorMessage.value = ''
+  isDragging.value   = false
+}
 
-const salvar = () => {
-  if (!props.chamado) return;
+function handleClose() {
+  if (!ticketStore.loading) emit('close')
+}
 
-  emit("salvar", {
-    id: props.chamado.id,
-    status: (novoStatus.value || props.chamado.status).toString(),
-    comentario: comentario.value?.trim() || "",
-  });
-};
+function onFileChange(event) {
+  const file = event.target.files[0]
+  if (file) form.value.attachment = file
+}
 
-const isFinalizado = computed(() => {
-  const st = (props.chamado?.status || "").toLowerCase();
-  return ["concluído", "concluido", "fechado"].includes(st);
-});
+function onDrop(event) {
+  isDragging.value = false
+  const file = event.dataTransfer.files[0]
+  if (file) form.value.attachment = file
+}
 
-const statusClass = computed(() => {
-  const status = (props.chamado?.status || "").toLowerCase();
-  if (status.includes("andamento")) return "em-andamento";
-  if (status.includes("aberto")) return "aberto";
-  if (status.includes("concluido") || status.includes("concluído")) return "concluido";
-  if (status.includes("fechado")) return "fechado";
-  return "";
-});
+async function handleSubmit() {
+  errorMessage.value = ''
 
-const formatarData = (dataOrTimestamp) => {
-  if (!dataOrTimestamp) return "";
-  if (typeof dataOrTimestamp === "string" && dataOrTimestamp.includes("/")) return dataOrTimestamp;
+  if (!form.value.titulo.trim()) {
+    errorMessage.value = 'O título do problema é obrigatório.'
+    return
+  }
+  if (!form.value.labId) {
+    errorMessage.value = 'Selecione o laboratório relacionado.'
+    return
+  }
+  if (!form.value.descricao.trim()) {
+    errorMessage.value = 'Descreva o problema com mais detalhes.'
+    return
+  }
 
-  return new Date(dataOrTimestamp).toLocaleDateString("pt-BR");
-};
+  try {
+    await ticketStore.addTicket({
+      titulo:    form.value.titulo.trim(),
+      descricao: form.value.descricao.trim(),
+      labId:     form.value.labId,
+      authorId:  authStore.user?.id ?? 1,
+      status:    'Aberto',
+      prioridade: 'MEDIUM'
+    })
+
+    emit('submitted')
+    emit('close')
+  } catch (err) {
+    console.error('Erro ao criar chamado:', err)
+    errorMessage.value = err.message ?? 'Não foi possível abrir o chamado. Tente novamente.'
+  }
+}
 </script>
 
 <template>
-  <transition name="modal-fade">
-    <div
-      v-if="visivel"
-      class="modal-overlay"
-      @click.self="fecharModal"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div class="modal" tabindex="-1">
-        <header class="modal-header">
-          <div class="title-wrap">
-            <h2>Chamado</h2><h2 class="lab-id"> #LAB-{{ chamado.labId.replace("lab", "").padStart(2, "0") }}</h2>
-            <span class="badge" :class="statusClass">{{ chamado?.status }}</span>
-          </div>
-          <button class="btn-close" @click="fecharModal" aria-label="Fechar modal">✕</button>
-        </header>
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
 
-        <hr class="divider" />
-
-        <section class="info-block" v-if="chamado">
-          <div class="info-item">
-            <label>Data:</label>
-            <p>{{ formatarData(chamado.data ?? chamado.createdAt) }}</p>
+          <div class="modal__header">
+            <div>
+              <h2 id="modal-title" class="modal__title">Abrir Novo Chamado</h2>
+              <p class="modal__subtitle">Preencha os dados abaixo para solicitar suporte técnico.</p>
+            </div>
+            <button class="modal__close-btn" :disabled="ticketStore.loading" @click="handleClose" aria-label="Fechar modal">
+              <X :size="20" />
+            </button>
           </div>
 
-          <div class="info-item">
-            <label>Título:</label>
-            <p>{{ chamado.titulo }}</p>
+          <div class="modal__body">
+
+            <div class="form-group">
+              <label class="form-label" for="ticket-titulo">Título do Problema</label>
+              <input
+                id="ticket-titulo"
+                v-model="form.titulo"
+                class="form-input"
+                type="text"
+                placeholder="Ex: Ar condicionado barulhento"
+                :disabled="ticketStore.loading"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="ticket-lab">Laboratório Relacionado</label>
+              <div class="select-wrapper">
+                <select
+                  id="ticket-lab"
+                  v-model="form.labId"
+                  class="form-select"
+                  :disabled="ticketStore.loading"
+                >
+                  <option value="" disabled>Selecione o laboratório</option>
+                  <option v-for="lab in labs" :key="lab.id" :value="lab.id">
+                    {{ lab.nome }}
+                  </option>
+                </select>
+                <ChevronDown :size="18" class="select-icon" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="ticket-descricao">Descrição Detalhada do Problema</label>
+              <textarea
+                id="ticket-descricao"
+                v-model="form.descricao"
+                class="form-textarea"
+                placeholder="Descreva o problema com o máximo de detalhes possível..."
+                rows="4"
+                :disabled="ticketStore.loading"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Anexar Evidências (Fotos ou Prints)</label>
+              <div
+                class="dropzone"
+                :class="{ 'dropzone--dragging': isDragging, 'dropzone--has-file': form.attachment }"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="onDrop"
+                @click="$refs.fileInput.click()"
+              >
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept="image/png,image/jpeg,application/pdf"
+                  class="dropzone__input"
+                  @change="onFileChange"
+                />
+
+                <div v-if="!form.attachment" class="dropzone__placeholder">
+                  <div class="dropzone__icon-wrap">
+                    <CloudUpload :size="24" />
+                  </div>
+                  <p class="dropzone__text">Clique para enviar ou arraste e solte</p>
+                  <p class="dropzone__hint">PNG, JPG ou PDF (Máx. 10MB)</p>
+                </div>
+
+                <div v-else class="dropzone__file">
+                  <CheckCircle2 :size="20" style="color: #006b1f;" />
+                  <span class="dropzone__filename">{{ form.attachment.name }}</span>
+                  <button class="dropzone__remove" @click.stop="form.attachment = null" aria-label="Remover arquivo">
+                    <X :size="16" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p v-if="errorMessage" class="error-msg">
+              <AlertCircle :size="16" />
+              {{ errorMessage }}
+            </p>
+
           </div>
 
-          <div class="info-item">
-            <label>Descrição:</label>
-            <p class="descricao">{{ chamado.descricao }}</p>
-          </div>
-        </section>
-
-        <section class="edit-block">
-          <div class="field">
-            <label class="field-label">Status</label>
-            <select v-model="novoStatus" class="select" :disabled="isFinalizado">
-              <option v-for="f in filtros.filter((x) => x !== 'Todos')" :key="f" :value="f">
-                {{ f }}
-              </option>
-            </select>
+          <div class="modal__footer">
+            <button class="btn btn--cancel" :disabled="ticketStore.loading" @click="handleClose">
+              Cancelar
+            </button>
+            <button class="btn btn--submit" :disabled="ticketStore.loading" @click="handleSubmit">
+              <Loader2 v-if="ticketStore.loading" :size="16" class="spin" />
+              <Ticket v-else :size="16" />
+              {{ ticketStore.loading ? 'Abrindo...' : 'Abrir Chamado' }}
+            </button>
           </div>
 
-          <div class="field">
-            <label class="field-label">Comentário</label>
-            <textarea
-              v-model="comentario"
-              class="textarea"
-              :readonly="isFinalizado"
-              rows="4"
-              placeholder="Escreva aqui..."
-            ></textarea>
-          </div>
-        </section>
-
-        <footer class="modal-footer">
-          <button class="btn-cancel" @click="fecharModal">Fechar</button>
-          <button class="btn-save" :disabled="isFinalizado" @click="salvar">
-            Salvar alterações
-          </button>
-        </footer>
+        </div>
       </div>
-    </div>
-  </transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
-/* Overlay */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  z-index: 1000;
+  background: rgba(26,28,28,0.4);
+  backdrop-filter: blur(8px);
+  padding: 1rem;
 }
-
-/* Container */
 .modal {
-  width: 100%;
-  max-width: 520px;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
-  padding: 20px 24px;
+  width: 100%;
+  max-width: 36rem;
+  border-radius: 1rem;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
 }
-
-/* Header */
-.modal-header {
+.modal__header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  padding: 2rem 2rem 1rem;
 }
-
-.title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.modal__title {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1c1c;
+  letter-spacing: -0.02em;
 }
-
-.modal-header h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a1a1b;
-}
-
-.btn-close {
+.modal__subtitle { font-size: 0.875rem; color: #3f4a3c; margin-top: 0.25rem; }
+.modal__close-btn {
+  padding: 0.25rem;
+  border-radius: 9999px;
+  border: none;
   background: transparent;
-  border: none;
-  color: #6b7280;
   cursor: pointer;
-  border-radius: 50%;
-  padding: 4px;
-  transition: background 0.2s ease;
-}
-.btn-close:hover {
-  background: #f3f4f6;
-}
-
-/* Divider */
-.divider {
-  border: none;
-  border-top: 1px solid #e5e7eb;
-  margin: 12px 0 16px;
-}
-
-/* Badge */
-.badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 12px;
-  text-transform: capitalize;
-}
-.badge.em-andamento {
-  background: #fdba74;
-  color: #9a3412;
-}
-.badge.aberto {
-  background: #fde68a;
-  color: #92400e;
-}
-.badge.concluido {
-  background: #bbf7d0;
-  color: #166534;
-}
-.badge.fechado {
-  background: #fecaca;
-  color: #991b1b;
-}
-
-/* BLOCO DE INFORMAÇÕES */
-.info-block {
-  margin-bottom: 24px;
-  font-size: 0.95rem;
-  color: #1a1a1b;
-}
-
-.info-item {
-  margin-bottom: 10px;
-}
-.info-item label {
-  font-weight: 600;
-  color: #111827;
-  display: block;
-  margin-bottom: 2px;
-}
-.info-item p {
-  margin: 0;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-/* BLOCO DE EDIÇÃO */
-.field {
-  margin-bottom: 14px;
-}
-.field-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a1a1b;
-}
-.textarea,
-.select {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  padding: 10px;
-  font-size: 0.9rem;
-  background: #fff;
-  transition: border 0.2s ease, background 0.2s ease;
-}
-.textarea:focus,
-.select:focus {
-  outline: none;
-  border-color: #2563eb;
-  background: #fff;
-}
-
-/* Footer */
-.modal-footer {
+  color: #3f4a3c;
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
+  transition: background 0.15s;
 }
-.btn-cancel {
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.modal__close-btn:hover { background: #e8e8e8; }
+.modal__close-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.modal__body {
+  padding: 1rem 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
-.btn-cancel:hover {
-  background: #f3f4f6;
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #3f4a3c;
+  padding-left: 0.25rem;
 }
-.btn-save {
-  background: var(--color-primary);
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: #e8e8e8;
   border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #1a1c1c;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+.form-input::placeholder, .form-textarea::placeholder { color: #9ca3af; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { box-shadow: 0 0 0 2px #006b1f; }
+.form-input:disabled, .form-select:disabled, .form-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-textarea { resize: none; }
+.select-wrapper { position: relative; }
+.form-select { appearance: none; cursor: pointer; }
+.select-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #3f4a3c;
+}
+.dropzone {
+  border: 2px dashed rgba(190,202,185,0.5);
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(243,243,244,0.5);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s, border-color 0.2s;
 }
-.btn-save:hover {
-  background: #1e40af;
+.dropzone:hover, .dropzone--dragging { background: #f3f3f4; border-color: #006b1f; }
+.dropzone__input { display: none; }
+.dropzone__icon-wrap {
+  width: 3rem;
+  height: 3rem;
+  background: rgba(0,107,31,0.1);
+  color: #006b1f;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s;
 }
-
-/* Transição */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: all 0.25s ease;
+.dropzone:hover .dropzone__icon-wrap { transform: scale(1.1); }
+.dropzone__text { font-weight: 700; color: #1a1c1c; font-size: 0.875rem; }
+.dropzone__hint { font-size: 0.75rem; color: #3f4a3c; margin-top: 0.25rem; }
+.dropzone__file { display: flex; align-items: center; gap: 0.75rem; }
+.dropzone__filename {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a1c1c;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
+.dropzone__remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #3f4a3c;
+  display: flex;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  transition: background 0.15s;
 }
-
-.lab-id {
-  background: #eef3ff;
-  color: #002df7;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 12px;
-  display: inline-block;
+.dropzone__remove:hover { background: #e8e8e8; }
+.error-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: #ba1a1a;
+  font-weight: 500;
 }
+.modal__footer {
+  padding: 1rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+@media (min-width: 480px) { .modal__footer { flex-direction: row; } }
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn--cancel { background: transparent; color: #3f4a3c; }
+.btn--cancel:hover:not(:disabled) { background: #e8e8e8; }
+.btn--submit {
+  flex: 1;
+  background: linear-gradient(135deg, #006b1f, #0b872b);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0,107,31,0.2);
+}
+.btn--submit:hover:not(:disabled) { opacity: 0.92; }
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
 </style>

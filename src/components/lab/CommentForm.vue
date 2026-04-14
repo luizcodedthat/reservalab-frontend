@@ -1,78 +1,95 @@
 <script setup>
+import { ref } from 'vue'
+import { Send, Loader2 } from 'lucide-vue-next'
+import { useCommentStore } from '@/stores/useCommentStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 
-import { ref } from 'vue';
-import { Comment } from '@/models/CommentModel';
-import { useRoute } from 'vue-router';
-import { useCommentStore } from '@/stores/useCommentStore';
-import { useAuthStore } from '@/stores/useAuthStore';
+const props = defineProps({
+  labId: { type: [String, Number], required: true }
+})
 
-const route = useRoute();
-const labId = route.params.id;
+const emit = defineEmits(['submitted'])
 
-const commentStore = useCommentStore();
-const auth = useAuthStore();
+const commentStore = useCommentStore()
+const authStore    = useAuthStore()
 
-const text = ref("");
-const sending = ref(false);
+const newComment = ref('')
+const isSending  = ref(false)
 
-async function submitComment() {
-  if (!text.value.trim()) return;
+async function handleSubmit() {
+  const content = newComment.value.trim()
+  if (!content) return
 
-  sending.value = true;
-
-  const commentModel = new Comment({
-    labId: labId,
-    authorId: auth.user.uid,
-    authorName: auth.user.displayName,
-    content: text.value,
-    createdAt: new Date(),
-  });
-
+  isSending.value = true
   try {
-    await commentStore.addComment(commentModel);
-    text.value = "";
-
+    await commentStore.addComment({
+      content,
+      authorId:     authStore.user?.id ?? 1,
+      authorName:   authStore.user?.name ?? '',
+      laboratoryId: Number(props.labId)
+    })
+    newComment.value = ''
+    emit('submitted')
   } catch (err) {
-    console.error("Erro ao criar comentário:", err);
+    console.error('Erro ao enviar comentário:', err)
+  } finally {
+    isSending.value = false
   }
-
-  sending.value = false;
 }
-
 </script>
 
 <template>
-
-  <div class="form">
-    <form @submit.prevent="submitComment">
-      <label id="comment-label" for="comment-field">Deixe seu comentário</label>
-      <textarea name="comment-field" id="comment-field" placeholder="Digite sua mensagem aqui" rows="3"
-        v-model="text"></textarea>
-      <button class="btn-primary" type="submit" :disabled="sending">{{ sending ? "Enviando..." : "Enviar comentário"
-        }}</button>
-    </form>
+  <div class="comment-form">
+    <h3 class="comment-form__title">Deixe seu comentário</h3>
+    <textarea
+      v-model="newComment"
+      class="comment-form__textarea"
+      placeholder="Escreva aqui sua experiência ou dúvida..."
+      :disabled="isSending"
+    />
+    <div class="comment-form__footer">
+      <button
+        class="btn-send"
+        :disabled="isSending || !newComment.trim()"
+        @click="handleSubmit"
+      >
+        <Loader2 v-if="isSending" :size="16" class="spin" />
+        <Send v-else :size="16" />
+        {{ isSending ? 'Enviando...' : 'Enviar Comentário' }}
+      </button>
+    </div>
   </div>
-
 </template>
 
 <style scoped>
-#comment-label {
-  font-weight: 500;
+.comment-form {
+  background: rgba(232,232,232,0.3);
+  padding: 2rem; border-radius: 0.75rem;
 }
-
-#comment-field {
-  padding: 8px 10px;
-  border-radius: 5px;
-  resize: none;
-  width: 100%;
-  margin-bottom: 8px;
-  border: 1px solid var(--color-gray-border);
-  color: var(--color-gray-text);
+.comment-form__title {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 1rem; font-weight: 700; color: #1a1c1c; margin-bottom: 1rem;
 }
-
-.btn-primary {
-  width: 100%;
-  padding: 10px;
-  font-weight: 500;
+.comment-form__textarea {
+  width: 100%; min-height: 8rem; background: #e8e8e8;
+  border: none; border-radius: 0.5rem; padding: 1rem;
+  font-family: 'Inter', sans-serif; font-size: 0.875rem;
+  color: #1a1c1c; resize: vertical; outline: none; transition: box-shadow 0.2s;
 }
+.comment-form__textarea::placeholder { color: rgba(63,74,60,0.5); }
+.comment-form__textarea:focus { box-shadow: 0 0 0 2px #006b1f; }
+.comment-form__textarea:disabled { opacity: 0.6; }
+.comment-form__footer { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.btn-send {
+  padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+  font-size: 0.875rem; font-weight: 700; cursor: pointer; border: none;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: linear-gradient(135deg, #006b1f, #0b872b);
+  color: #ffffff; box-shadow: 0 4px 12px rgba(0,107,31,0.2);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-send:active:not(:disabled) { transform: scale(0.97); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
 </style>

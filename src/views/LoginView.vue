@@ -1,83 +1,42 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { login, loginWithGoogle } from "@/firebase/firebase";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/useAuthStore'
 
-const router = useRouter();
-const authStore = useAuthStore();
+const router    = useRouter()
+const authStore = useAuthStore()
 
-const email = ref("");
-const password = ref("");
+const email    = ref('')
+const password = ref('')
 
-// Estado do aviso
-const showAlert = ref(false);
-const alertMessage = ref("");
+// Alerta
+const showAlert    = ref(false)
+const alertMessage = ref('')
 
-// Função para mostrar aviso
 function notify(msg) {
-  alertMessage.value = msg;
-  showAlert.value = true;
-
-  setTimeout(() => {
-    showAlert.value = false;
-  }, 3500); // some depois de 3.5s
+  alertMessage.value = msg
+  showAlert.value    = true
+  setTimeout(() => { showAlert.value = false }, 3500)
 }
 
-// Login com email e senha
 async function handleLogin() {
-  const value = email.value;
-
-  // Verificar domínio
-  if (
-    !value.endsWith("@discente.ifpe.edu.br") &&
-    !value.endsWith("@palmares.ifpe.edu.br")
-  ) {
-    notify("Use um email institucional (@discente.ifpe.edu.br ou @palmares.ifpe.edu.br)");
-    return;
-  }
-
   try {
-    const userCredential = await login(email.value, password.value);
-    authStore.user = userCredential.user;
-    router.push({ name: "Laboratorios" });
+    await authStore.doLogin(email.value, password.value)
+    router.push({ name: 'Laboratorios' })
   } catch (error) {
-    console.error(error);
-
-    if (error.code === "auth/invalid-credential") {
-      notify("Email ou senha inválidos.");
-    } else {
-      notify("Erro ao fazer login: " + error.message);
-    }
+    console.error(error)
+    notify('Email ou senha inválidos.')
   }
 }
 
-// Login Google
+// Login Google — mantido, mas desativado até migração completa
 async function handleLoginGoogle() {
-  try {
-    const result = await loginWithGoogle();
-    const userEmail = result.user.email;
-
-    if (
-      !userEmail.endsWith("@discente.ifpe.edu.br") &&
-      !userEmail.endsWith("@palmares.ifpe.edu.br")
-    ) {
-      notify("Somente emails institucionais podem acessar.");
-      return;
-    }
-
-    authStore.user = result.user;
-    router.push({ name: "Laboratorios" });
-  } catch (err) {
-    console.error(err);
-    notify("Erro ao entrar com Google: " + err.code);
-  }
+  notify('Login com Google ainda não disponível nesta versão.')
 }
 </script>
 
-
 <template>
-  <!-- 🔔 Caixa de Aviso -->
+  <!-- Alerta -->
   <transition name="fade">
     <div v-if="showAlert" class="alert-box">
       {{ alertMessage }}
@@ -100,11 +59,11 @@ async function handleLoginGoogle() {
         <h2>Entre na conta</h2>
         <p class="subtitle">Insira email e senha abaixo para entrar em sua conta</p>
 
-        <form @submit.prevent="handleLogin" class="form">
+        <form class="form" @submit.prevent="handleLogin">
           <div class="input-wrapper">
             <input
-              type="email"
               v-model="email"
+              type="email"
               placeholder="Email"
               class="input-text"
               required
@@ -113,15 +72,17 @@ async function handleLoginGoogle() {
 
           <div class="input-wrapper">
             <input
-              type="password"
               v-model="password"
+              type="password"
               placeholder="Senha"
               class="input-text"
               required
             />
           </div>
 
-          <button type="submit" class="btn-primary btn-green">Entrar</button>
+          <button type="submit" class="btn-primary btn-green" :disabled="authStore.loading">
+            {{ authStore.loading ? 'Entrando...' : 'Entrar' }}
+          </button>
         </form>
 
         <div class="divider">ou entre com</div>
@@ -139,16 +100,13 @@ async function handleLoginGoogle() {
   </div>
 </template>
 
-
 <style scoped>
-/* Layout geral */
 .login-container {
   display: flex;
   height: 100vh;
   font-family: Arial, sans-serif;
 }
 
-/* Coluna esquerda */
 .login-left {
   flex: 1;
   background: #18181b;
@@ -178,7 +136,6 @@ async function handleLoginGoogle() {
   color: var(--color-gray-background);
 }
 
-/* Coluna direita */
 .login-right {
   flex: 1;
   background: #ffffff;
@@ -204,7 +161,6 @@ async function handleLoginGoogle() {
   margin-bottom: 1.5rem;
 }
 
-/* Inputs */
 .input-wrapper {
   margin-bottom: 1rem;
   text-align: left;
@@ -222,7 +178,6 @@ async function handleLoginGoogle() {
   outline: none;
 }
 
-/* Botões */
 .btn-primary {
   width: 100%;
   padding: 10px;
@@ -232,13 +187,19 @@ async function handleLoginGoogle() {
   font-weight: bold;
   cursor: pointer;
   margin-bottom: 1rem;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-green {
   background-color: var(--color-primary);
 }
 
-.btn-green:hover {
+.btn-green:hover:not(:disabled) {
   background-color: #16a34a;
 }
 
@@ -261,7 +222,6 @@ async function handleLoginGoogle() {
   background: #f9fafb;
 }
 
-/* Divisor */
 .divider {
   margin: 1rem 0;
   font-size: 0.8rem;
@@ -269,12 +229,11 @@ async function handleLoginGoogle() {
   text-transform: uppercase;
 }
 
-/* Ícone do Google */
 .icon {
   width: 20px;
   height: 20px;
 }
-/* ALERTA BONITO */
+
 .alert-box {
   position: fixed;
   top: 20px;
@@ -284,16 +243,17 @@ async function handleLoginGoogle() {
   padding: 14px 20px;
   border-radius: 8px;
   font-weight: bold;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 9999;
 }
 
-/* animação fade */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity .4s;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s;
 }
 
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 </style>
