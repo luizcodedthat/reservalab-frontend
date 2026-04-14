@@ -4,8 +4,8 @@ import { X, ChevronDown, CalendarDays, Clock, FileText, Loader2, CheckCheck, Spa
 import { useReservationStore } from '@/stores/useReservationStore'
 import { useLabSuggestionStore } from '@/stores/useLabSuggestionStore'
 
-const reservationStore = useReservationStore()
-const labSuggestionStore = useLabSuggestionStore()
+const reservationStore    = useReservationStore()
+const labSuggestionStore  = useLabSuggestionStore()
 
 const props = defineProps({
   isOpen:   { type: Boolean, default: false },
@@ -15,9 +15,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submitted'])
 
-const isAiLoading = computed(() => labSuggestionStore.loading)
-const aiError     = computed(() => labSuggestionStore.error)
-const aiReason    = computed(() => labSuggestionStore.suggestion?.reason ?? '')
+const isLoading    = ref(false)
+const errorMessage = ref('')
 
 const form = ref({
   labId:       '',
@@ -27,14 +26,19 @@ const form = ref({
   description: ''
 })
 
-// ── IA ────────────────────────────────────────────────────────────────────────
+const today = computed(() => new Date().toISOString().slice(0, 10))
+
+// ── IA — estado da store (somente leitura) ────────────────────────────────────
+const isAiLoading = computed(() => labSuggestionStore.loading)
+const aiError     = computed(() => labSuggestionStore.error)
+const aiReason    = computed(() => labSuggestionStore.suggestion?.reason ?? '')
+
 const isAiPanelOpen = ref(false)
 const aiPrompt      = ref('')
 
 function toggleAiPanel() {
   isAiPanelOpen.value = !isAiPanelOpen.value
-  aiReason.value = ''
-  aiError.value  = ''
+  labSuggestionStore.reset()   // limpa erro e sugestão anterior pela store
 }
 
 const aiCanSend = computed(() =>
@@ -61,18 +65,9 @@ async function handleAiSuggest() {
 
     form.value.labId = result.labId
 
-  } catch (err) {
-    aiError.value =
-      err?.response?.data?.message ||
-      err.message ||
-      'Não foi possível obter sugestão da IA.'
-  } finally {
-    isAiLoading.value = false
+  } catch {
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
-
-const today = computed(() => new Date().toISOString().slice(0, 10))
 
 watch(() => props.isOpen, (val) => {
   if (val) {
@@ -83,6 +78,9 @@ watch(() => props.isOpen, (val) => {
       endTime:     '',
       description: ''
     }
+    errorMessage.value  = ''
+    isAiPanelOpen.value = false
+    aiPrompt.value      = ''
     labSuggestionStore.reset()
   }
 })
@@ -116,10 +114,10 @@ function isPastDateTime(date, time) {
 async function handleSubmit() {
   errorMessage.value = ''
 
-  if (!form.value.labId)            { errorMessage.value = 'Selecione o laboratório.'; return }
-  if (!form.value.date)             { errorMessage.value = 'Informe a data da reserva.'; return }
-  if (!form.value.startTime)        { errorMessage.value = 'Informe o horário de início.'; return }
-  if (!form.value.endTime)          { errorMessage.value = 'Informe o horário de término.'; return }
+  if (!form.value.labId)              { errorMessage.value = 'Selecione o laboratório.'; return }
+  if (!form.value.date)               { errorMessage.value = 'Informe a data da reserva.'; return }
+  if (!form.value.startTime)          { errorMessage.value = 'Informe o horário de início.'; return }
+  if (!form.value.endTime)            { errorMessage.value = 'Informe o horário de término.'; return }
   if (!form.value.description.trim()) { errorMessage.value = 'Descreva a atividade.'; return }
 
   if (form.value.date < today.value) {
