@@ -21,12 +21,12 @@ const lab = computed(() => labStore.labById[labId.value] ?? null)
 
 const isReservationModalOpen = ref(false)
 
-// 🔥 NOVA LÓGICA PROFISSIONAL
 const {
   currentReservation,
   nextReservations,
   getStart,
-  getEnd
+  getEnd,
+  formatTimeToHourAndMinutes
 } = useLabReservations(labId)
 
 onMounted(async () => {
@@ -75,7 +75,7 @@ onMounted(async () => {
               <div class="current-reservation__time">
                 <span class="current-reservation__time-label">Horário</span>
                 <span class="current-reservation__time-value">
-                  {{ getStart(currentReservation) }} - {{ getEnd(currentReservation) }}
+                  {{ formatTimeToHourAndMinutes(getStart(currentReservation)) }} - {{ formatTimeToHourAndMinutes(getEnd(currentReservation)) }}
                 </span>
               </div>
             </div>
@@ -107,7 +107,7 @@ onMounted(async () => {
 
                 <div class="reservation-item__time">
                   <span>
-                    {{ getStart(res) }} - {{ getEnd(res) }}
+                    {{ formatTimeToHourAndMinutes(getStart(res)) }} - {{ formatTimeToHourAndMinutes(getEnd(res)) }}
                   </span>
                   <span class="reservation-item__day">
                     {{ res.reservationDate }}

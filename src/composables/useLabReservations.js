@@ -19,6 +19,11 @@ export function useLabReservations(labId) {
     return res.timeBlocks?.at(-1)?.endTime ?? null
   }
 
+  function formatTimeToHourAndMinutes(timeStr) {
+    if (!timeStr) return '--:--'
+    return timeStr.slice(0, 5)
+  }
+
   const today = new Date().toISOString().slice(0, 10)
 
   const reservations = computed(() =>
@@ -53,6 +58,7 @@ export function useLabReservations(labId) {
     currentReservation,
     nextReservations,
     getStart,
-    getEnd
+    getEnd,
+    formatTimeToHourAndMinutes
   }
 }
