@@ -66,6 +66,7 @@ async function handleAiSuggest() {
     form.value.labId = result.labId
 
   } catch {
+    // ignore
   }
 }
 
@@ -182,7 +183,6 @@ async function handleSubmit() {
       <div v-if="isOpen" class="modal-overlay" @click.self="handleClose">
         <div class="modal">
 
-          <!-- Header -->
           <div class="modal__header">
             <div>
               <h2 class="modal__title">Nova Reserva de Laboratório</h2>
@@ -193,10 +193,8 @@ async function handleSubmit() {
             </button>
           </div>
 
-          <!-- Body -->
           <div class="modal__body">
 
-            <!-- LAB -->
             <div class="form-group">
               <div class="lab-label-row">
                 <label class="form-label">Selecionar Laboratório</label>
@@ -216,7 +214,6 @@ async function handleSubmit() {
                 <ChevronDown :size="18" class="select-icon" />
               </div>
 
-              <!-- Painel IA -->
               <Transition name="ai-panel">
                 <div v-if="isAiPanelOpen" class="ai-panel">
                   <p class="ai-panel__hint">
@@ -258,7 +255,6 @@ async function handleSubmit() {
               </Transition>
             </div>
 
-            <!-- DATA + HORÁRIO -->
             <div class="form-row-3">
               <div class="form-group">
                 <label class="form-label"><CalendarDays :size="12" /> Data</label>
@@ -276,7 +272,6 @@ async function handleSubmit() {
               </div>
             </div>
 
-            <!-- DESCRIÇÃO -->
             <div class="form-group">
               <label class="form-label"><FileText :size="12" /> Descrição</label>
               <textarea
@@ -291,7 +286,6 @@ async function handleSubmit() {
 
           </div>
 
-          <!-- Footer -->
           <div class="modal__footer">
             <button class="btn btn--cancel" @click="handleClose">Cancelar</button>
             <button class="btn btn--submit" :disabled="isLoading" @click="handleSubmit">
@@ -308,7 +302,6 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-/* ── existentes ─────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
   display: flex; align-items: center; justify-content: center;
@@ -395,7 +388,6 @@ async function handleSubmit() {
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.8s linear infinite; }
 
-/* ── IA ─────────────────────────────────────────────────────────────────────── */
 .lab-label-row {
   display: flex;
   align-items: center;
@@ -483,7 +475,6 @@ async function handleSubmit() {
 }
 .ai-reason__icon { flex-shrink: 0; margin-top: 0.1rem; color: #006b1f; }
 
-/* animação do painel */
 .ai-panel-enter-active,
 .ai-panel-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
