@@ -21,12 +21,12 @@ const lab = computed(() => labStore.labById[labId.value] ?? null)
 
 const isReservationModalOpen = ref(false)
 
-// 🔥 NOVA LÓGICA PROFISSIONAL
 const {
   currentReservation,
   nextReservations,
   getStart,
-  getEnd
+  getEnd,
+  formatTimeToHourAndMinutes
 } = useLabReservations(labId)
 
 onMounted(async () => {
@@ -75,7 +75,7 @@ onMounted(async () => {
               <div class="current-reservation__time">
                 <span class="current-reservation__time-label">Horário</span>
                 <span class="current-reservation__time-value">
-                  {{ getStart(currentReservation) }} - {{ getEnd(currentReservation) }}
+                  {{ formatTimeToHourAndMinutes(getStart(currentReservation)) }} - {{ formatTimeToHourAndMinutes(getEnd(currentReservation)) }}
                 </span>
               </div>
             </div>
@@ -107,7 +107,7 @@ onMounted(async () => {
 
                 <div class="reservation-item__time">
                   <span>
-                    {{ getStart(res) }} - {{ getEnd(res) }}
+                    {{ formatTimeToHourAndMinutes(getStart(res)) }} - {{ formatTimeToHourAndMinutes(getEnd(res)) }}
                   </span>
                   <span class="reservation-item__day">
                     {{ res.reservationDate }}
@@ -202,9 +202,10 @@ onMounted(async () => {
 .current-reservation__time-label {
   display: block; font-size: 0.625rem; text-transform: uppercase;
   letter-spacing: 0.1em; opacity: 0.8; font-weight: 700;
+  color: var(--color-gray-border);
 }
 .current-reservation__time-value {
-  display: block; font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem;
+  display: block; font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; color: #ffffff;
 }
 
 .reservations-list { display: flex; flex-direction: column; gap: 0.75rem; }
