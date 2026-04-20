@@ -27,7 +27,7 @@ const statusInfo = computed(() =>
 // Localização: tenta building+floor, senão location, senão vazio
 const locationText = computed(() => {
   const lab = props.lab
-  if (lab.building && lab.floor != null) return `Bloco ${lab.building} - Piso ${lab.floor}`
+  if (lab.building && lab.floor != null) return `${lab.building} - Piso ${lab.floor}`
   return lab.location ?? lab.building ?? ''
 })
 
