@@ -54,7 +54,7 @@ async function handleSubmit() {
         @click="handleSubmit"
       >
         <Loader2 v-if="isSending" :size="16" class="spin" />
-        <Send v-else :size="16" />
+        <Send color="#fff" v-else :size="16" />
         {{ isSending ? 'Enviando...' : 'Enviar Comentário' }}
       </button>
     </div>

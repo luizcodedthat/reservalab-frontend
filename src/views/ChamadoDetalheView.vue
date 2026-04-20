@@ -237,7 +237,7 @@ onMounted(async () => {
                     @click="handleSendComment"
                   >
                     <Loader2 v-if="isSendingComment" :size="16" class="spin" />
-                    <Send v-else :size="16" />
+                    <Send color="#fff" v-else :size="16" />
                     {{ isSendingComment ? 'Enviando...' : 'Enviar' }}
                   </button>
                 </div>

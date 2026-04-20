@@ -42,7 +42,7 @@ const labName = computed(() => {
 
     <div class="chamado-card__body">
       <div v-if="labName" class="chamado-card__lab">
-        <FlaskConical :size="14" class="chamado-card__lab-icon" />
+        <FlaskConical color="#006b1f" :size="14" class="chamado-card__lab-icon" />
         <span class="chamado-card__lab-name">{{ labName }}</span>
       </div>
       <h3 class="chamado-card__title">{{ ticket.titulo }}</h3>
@@ -62,7 +62,7 @@ const labName = computed(() => {
         class="btn btn--primary"
         @click="emit('attend', ticket)"
       >
-        <component :is="statusConfig.ActionIcon" :size="16" />
+        <component :is="statusConfig.ActionIcon" color="#fff" :size="16" />
         {{ statusConfig.actionLabel }}
       </button>
 

@@ -137,7 +137,7 @@ onMounted(async () => {
     />
 
     <button class="fab" title="Abrir novo chamado" @click="isModalOpen = true">
-      <Plus :size="24" />
+      <Plus color="#fff" :size="24" />
     </button>
   </div>
 </template>

@@ -54,7 +54,7 @@ onMounted(async () => {
           <!-- ✅ RESERVA ATUAL -->
           <section v-if="currentReservation">
             <h2 class="section-title section-title--primary">
-              <CalendarCheck2 :size="20" />
+              <CalendarCheck2 color="#006b1f" :size="20" />
               Reserva Atual
             </h2>
 

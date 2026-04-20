@@ -165,7 +165,7 @@ async function handleSubmit() {
             <button class="btn btn--cancel" :disabled="ticketStore.loading" @click="handleClose">Cancelar</button>
             <button class="btn btn--submit" :disabled="ticketStore.loading" @click="handleSubmit">
               <Loader2 v-if="ticketStore.loading" :size="16" class="spin" />
-              <Save v-else :size="16" />
+              <Save color="#fff" v-else :size="16" />
               {{ ticketStore.loading ? 'Salvando...' : 'Salvar Alterações' }}
             </button>
           </div>

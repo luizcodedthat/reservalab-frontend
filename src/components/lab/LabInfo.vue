@@ -62,7 +62,7 @@ const emit = defineEmits(['open-reservation'])
         Verifique a disponibilidade completa no calendário e faça sua solicitação em poucos cliques.
       </p>
       <button class="cta-card__btn" @click="emit('open-reservation')">
-        <CalendarDays :size="18" />
+        <CalendarDays color="#fff" :size="18" />
         ABRIR CALENDÁRIO
       </button>
     </div>
