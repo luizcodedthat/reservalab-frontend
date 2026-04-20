@@ -202,9 +202,10 @@ onMounted(async () => {
 .current-reservation__time-label {
   display: block; font-size: 0.625rem; text-transform: uppercase;
   letter-spacing: 0.1em; opacity: 0.8; font-weight: 700;
+  color: var(--color-gray-border);
 }
 .current-reservation__time-value {
-  display: block; font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem;
+  display: block; font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; color: #ffffff;
 }
 
 .reservations-list { display: flex; flex-direction: column; gap: 0.75rem; }
