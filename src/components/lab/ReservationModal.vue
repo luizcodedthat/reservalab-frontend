@@ -237,7 +237,7 @@ async function handleSubmit() {
                       @click="handleAiSuggest"
                     >
                       <Loader2 v-if="isAiLoading" :size="15" class="spin" />
-                      <SendHorizontal v-else :size="15" />
+                      <SendHorizontal color="#fff" v-else :size="15" />
                     </button>
                   </div>
 
@@ -290,7 +290,7 @@ async function handleSubmit() {
             <button class="btn btn--cancel" @click="handleClose">Cancelar</button>
             <button class="btn btn--submit" :disabled="isLoading" @click="handleSubmit">
               <Loader2 v-if="isLoading" :size="16" class="spin" />
-              <CheckCheck v-else :size="16" />
+              <CheckCheck color="#fff" v-else :size="16" />
               {{ isLoading ? 'Confirmando...' : 'Confirmar Reserva' }}
             </button>
           </div>

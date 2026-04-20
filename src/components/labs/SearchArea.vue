@@ -49,7 +49,7 @@ function onSearch() {
         :class="{ 'filter-btn--active': showFilters }"
         @click="showFilters = !showFilters"
       >
-        <SlidersHorizontal :size="18" />
+        <SlidersHorizontal :color="showFilters ? '#fff' : '#000000'" :size="18" />
         Filtros
       </button>
 
@@ -104,6 +104,7 @@ function onSearch() {
 }
 .filter-btn:hover { background: #e2e2e2; }
 .filter-btn--active { background: #006b1f; color: #ffffff; }
+.filter-btn--active:hover { background: #005316; }
 .filter-dropdown {
   position: absolute; right: 0; top: calc(100% + 0.5rem);
   width: 16rem; background: #ffffff; border-radius: 0.75rem;
