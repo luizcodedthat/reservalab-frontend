@@ -26,7 +26,13 @@ const form = ref({
   description: ''
 })
 
-const today = computed(() => new Date().toISOString().slice(0, 10))
+const today = computed(() => {
+  const date = new Date();
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Sao_Paulo'
+  });
+  return formatter.format(date);
+});
 
 // ── IA — estado da store (somente leitura) ────────────────────────────────────
 const isAiLoading = computed(() => labSuggestionStore.loading)
@@ -123,6 +129,7 @@ async function handleSubmit() {
 
   if (form.value.date < today.value) {
     errorMessage.value = 'Não é possível reservar em datas passadas.'
+    console.log('Data selecionada:', form.value.date, 'Hoje:', today.value)
     return
   }
 
