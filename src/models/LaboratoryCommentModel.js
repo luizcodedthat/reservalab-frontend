@@ -11,6 +11,8 @@ export class LaboratoryComment {
     this.upvotes = data.upvotes ?? 0
     this.downvotes = data.downvotes ?? 0
 
+    this.userVote = data.userVote ?? null
+
     this.editedAt = data.editedAt ?? null
     this.createdAt = data.createdAt ?? null
   }

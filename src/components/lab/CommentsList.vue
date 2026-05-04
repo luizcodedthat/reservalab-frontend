@@ -41,6 +41,7 @@ onMounted(() => {
         v-for="comment in comments"
         :key="comment.id"
         :comment="comment"
+        :labId="Number(labId)"
       />
     </div>
 

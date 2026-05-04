@@ -1,9 +1,13 @@
 <script setup>
 import { ThumbsUp, ThumbsDown, User } from 'lucide-vue-next'
+import { useLaboratoryCommentStore } from '@/stores/useLaboratoryCommentStore'
 
 const props = defineProps({
-  comment: { type: Object, required: true }
+  comment: { type: Object, required: true },
+  labId: { type: Number, required: true }
 })
+
+const commentStore = useLaboratoryCommentStore()
 
 function formatTimeAgo(timestamp) {
   if (!timestamp) return ''
@@ -15,6 +19,30 @@ function formatTimeAgo(timestamp) {
   if (diff < 60) return `há ${diff} min`
   if (diff < 1440) return `há ${Math.floor(diff / 60)}h`
   return `há ${Math.floor(diff / 1440)} dias`
+}
+
+async function upvote() {
+  try {
+    await commentStore.upvote(props.labId, props.comment.id)
+  } catch (err) {
+    console.error('Erro ao dar UPVOTE', err)
+  }
+}
+
+async function downvote() {
+  try {
+    await commentStore.downvote(props.labId, props.comment.id)
+  } catch (err) {
+    console.error('Erro ao dar DOWNVOTE', err)
+  }
+}
+
+async function removeVote() {
+  try {
+    await commentStore.removeVote(props.labId, props.comment.id)
+  } catch (err) {
+    console.error('Erro ao remover voto', err)
+  }
 }
 </script>
 
@@ -40,18 +68,21 @@ function formatTimeAgo(timestamp) {
       </p>
 
       <div class="comment__actions">
-        <button class="vote-btn">
+        <button class="vote-btn" @click="upvote">
           <ThumbsUp :size="15" />
           {{ comment.upvotes ?? 0 }}
         </button>
 
-        <button class="vote-btn">
+        <button class="vote-btn" @click="downvote">
           <ThumbsDown :size="15" />
           {{ comment.downvotes ?? 0 }}
         </button>
+
+        <button v-if="(comment.upvotes > 0 || comment.downvotes > 0)" class="vote-btn" @click="removeVote">
+          Remover voto
+        </button>
       </div>
 
-      <!-- opcional: mostra edição -->
       <small v-if="comment.editedAt" class="edited">
         editado
       </small>
