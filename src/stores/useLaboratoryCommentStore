@@ -1,0 +1,107 @@
+import { defineStore } from 'pinia'
+import LaboratoryCommentService from '@/services/LaboratoryCommentService'
+
+export const useLaboratoryCommentStore = defineStore('laboratoryComments', {
+  state: () => ({
+    commentsByLaboratory: {}, // { laboratoryId: LaboratoryComment[] }
+    lastFetched: {},          // { laboratoryId: timestamp }
+    loading: false,
+    error: null
+  }),
+
+  getters: {
+    getCommentsByLaboratory: (state) => (laboratoryId) =>
+      state.commentsByLaboratory[laboratoryId] ?? [],
+
+    isLoading: (state) => state.loading
+  },
+
+  actions: {
+
+    async loadComments(laboratoryId, force = false) {
+      const FIVE_MIN = 5 * 60 * 1000
+      const now = Date.now()
+
+      // cache inteligente
+      if (
+        !force &&
+        this.lastFetched[laboratoryId] &&
+        now - this.lastFetched[laboratoryId] < FIVE_MIN
+      ) {
+        return
+      }
+
+      this.loading = true
+      this.error = null
+
+      try {
+        const comments = await LaboratoryCommentService.getByLaboratory(
+          laboratoryId
+        )
+
+        this.commentsByLaboratory[laboratoryId] = comments
+        this.lastFetched[laboratoryId] = now
+
+      } catch (error) {
+        this.error =
+          error?.response?.data?.message ||
+          'Erro ao carregar comentários do laboratório'
+
+        console.error(this.error)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async addComment(laboratoryId, commentData) {
+      this.error = null
+
+      try {
+        const created = await LaboratoryCommentService.create(
+          laboratoryId,
+          commentData
+        )
+
+        if (!this.commentsByLaboratory[laboratoryId]) {
+          this.commentsByLaboratory[laboratoryId] = []
+        }
+
+        // otimistic update
+        this.commentsByLaboratory[laboratoryId].unshift(created)
+
+        return created
+
+      } catch (error) {
+        this.error =
+          error?.response?.data?.message ||
+          'Erro ao criar comentário do laboratório'
+
+        console.error(this.error)
+        throw error
+      }
+    },
+
+    async deleteComment(laboratoryId, commentId) {
+      this.error = null
+
+      try {
+        await LaboratoryCommentService.delete(laboratoryId, commentId)
+
+        if (this.commentsByLaboratory[laboratoryId]) {
+          this.commentsByLaboratory[laboratoryId] =
+            this.commentsByLaboratory[laboratoryId].filter(
+              c => c.id !== commentId
+            )
+        }
+
+      } catch (error) {
+        this.error =
+          error?.response?.data?.message ||
+          'Erro ao deletar comentário do laboratório'
+
+        console.error(this.error)
+        throw error
+      }
+    }
+  }
+})

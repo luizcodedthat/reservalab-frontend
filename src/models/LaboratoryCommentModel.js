@@ -1,4 +1,4 @@
-export class Comment {
+export class LaboratoryComment {
 
   constructor(data = {}) {
     this.id = data.id ?? null
@@ -6,10 +6,7 @@ export class Comment {
     this.authorId = data.authorId ?? null
     this.authorName = data.authorName ?? ''
 
-
     this.content = data.content ?? ''
-
-    this.rating = data.rating ?? null
 
     this.upvotes = data.upvotes ?? 0
     this.downvotes = data.downvotes ?? 0
@@ -35,10 +32,7 @@ export class Comment {
 
   toJSON() {
     return {
-      authorId: this.authorId,
-      content: this.content,
-      rating: this.rating
+      content: this.content
     }
   }
-
 }

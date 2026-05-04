@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useCommentStore } from '@/stores/useCommentStore'
+import { useLaboratoryCommentStore } from '@/stores/useLaboratoryCommentStore'
 import CommentCard from '@/components/lab/CommentCard.vue'
 import CommentForm from '@/components/lab/CommentForm.vue'
 
@@ -8,24 +8,33 @@ const props = defineProps({
   labId: { type: [String, Number], required: true }
 })
 
-const commentStore = useCommentStore()
-
-const labKey = computed(() => `lab${props.labId}`)
+const commentStore = useLaboratoryCommentStore()
 
 const comments = computed(() =>
-  commentStore.commentsByLab?.[labKey.value] ?? []
+  commentStore.getCommentsByLaboratory(props.labId)
 )
 
+const isLoading = computed(() => commentStore.isLoading)
+const error = computed(() => commentStore.error)
+
 async function handleSubmitted() {
-  await commentStore.loadComments(labKey.value)
+  await commentStore.loadComments(props.labId, true)
 }
 
-onMounted(() => commentStore.loadComments(labKey.value))
+onMounted(() => {
+  commentStore.loadComments(props.labId)
+})
 </script>
 
 <template>
   <section class="comments-section">
     <h2 class="section-title">Comentários e Feedbacks</h2>
+
+    <p v-if="error" class="error">{{ error }}</p>
+
+    <p v-if="isLoading && comments.length === 0">
+      Carregando comentários...
+    </p>
 
     <div v-if="comments.length > 0" class="comments-list">
       <CommentCard
@@ -34,6 +43,10 @@ onMounted(() => commentStore.loadComments(labKey.value))
         :comment="comment"
       />
     </div>
+
+    <p v-else-if="!isLoading">
+      Nenhum comentário ainda.
+    </p>
 
     <CommentForm :lab-id="labId" @submitted="handleSubmitted" />
   </section>

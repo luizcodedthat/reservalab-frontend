@@ -1,8 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Send, Loader2 } from 'lucide-vue-next'
-import { useCommentStore } from '@/stores/useCommentStore'
-import { useAuthStore } from '@/stores/useAuthStore'
+import { useLaboratoryCommentStore } from '@/stores/useLaboratoryCommentStore'
 
 const props = defineProps({
   labId: { type: [String, Number], required: true }
@@ -10,26 +9,25 @@ const props = defineProps({
 
 const emit = defineEmits(['submitted'])
 
-const commentStore = useCommentStore()
-const authStore    = useAuthStore()
+const commentStore = useLaboratoryCommentStore()
 
 const newComment = ref('')
-const isSending  = ref(false)
+const isSending = ref(false)
 
 async function handleSubmit() {
   const content = newComment.value.trim()
   if (!content) return
 
   isSending.value = true
+
   try {
-    await commentStore.addComment({
-      content,
-      authorId:     authStore.user?.id ?? 1,
-      authorName:   authStore.user?.name ?? '',
-      laboratoryId: Number(props.labId)
+    await commentStore.addComment(props.labId, {
+      content
     })
+
     newComment.value = ''
     emit('submitted')
+
   } catch (err) {
     console.error('Erro ao enviar comentário:', err)
   } finally {
@@ -41,12 +39,14 @@ async function handleSubmit() {
 <template>
   <div class="comment-form">
     <h3 class="comment-form__title">Deixe seu comentário</h3>
+
     <textarea
       v-model="newComment"
       class="comment-form__textarea"
       placeholder="Escreva aqui sua experiência ou dúvida..."
       :disabled="isSending"
     />
+
     <div class="comment-form__footer">
       <button
         class="btn-send"
@@ -54,7 +54,8 @@ async function handleSubmit() {
         @click="handleSubmit"
       >
         <Loader2 v-if="isSending" :size="16" class="spin" />
-        <Send color="#fff" v-else :size="16" />
+        <Send v-else :size="16" />
+
         {{ isSending ? 'Enviando...' : 'Enviar Comentário' }}
       </button>
     </div>
