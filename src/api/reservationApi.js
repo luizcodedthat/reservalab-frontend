@@ -27,7 +27,7 @@ export const reservationApi = {
 
   // POST /reservations/search  (filtros)
   search: (filters) =>
-    http.post('reservations/search', filters),
+    http.get('reservations/search', filters),
 
   // DELETE /reservations/cancel-by-filter
   cancelByFilter: (filters) =>
