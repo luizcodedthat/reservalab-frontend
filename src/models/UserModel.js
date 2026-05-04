@@ -49,6 +49,32 @@ export class User {
     return true
   }
 
+  // ─── Getters de conveniência (adicione ao User existente) ────────────────────
+
+get firstName() {
+  return this.name?.trim().split(' ')[0] || ''
+}
+
+get initials() {
+  return (this.name || '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(n => n[0].toUpperCase())
+    .join('')
+}
+
+get dashboardRoute() {
+  const map = {
+    STUDENT:    '/dashboard/aluno',
+    PROFESSOR:  '/dashboard/professor',
+    SECRETARY:  '/dashboard/secretaria',
+    TECHNICIAN: '/dashboard/secretaria',
+  }
+  return map[this.role] || '/login'
+}
+
   /** Usado no registro — envia para o backend */
   toRegisterPayload(password) {
     return {

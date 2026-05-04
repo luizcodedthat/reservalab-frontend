@@ -1,4 +1,4 @@
-export class Comment {
+export class LaboratoryComment {
 
   constructor(data = {}) {
     this.id = data.id ?? null
@@ -8,17 +8,20 @@ export class Comment {
 
     this.content = data.content ?? ''
 
-    this.rating = data.rating ?? null
-
     this.upvotes = data.upvotes ?? 0
     this.downvotes = data.downvotes ?? 0
+
+    this.userVote = data.userVote ?? null
 
     this.editedAt = data.editedAt ?? null
     this.createdAt = data.createdAt ?? null
   }
 
   isValid() {
-    return this.content && this.content.trim().length > 0
+    if (!this.authorId) return false
+    if (!this.content || !this.content.trim()) return false
+
+    return true
   }
 
   isEdited() {
@@ -31,9 +34,7 @@ export class Comment {
 
   toJSON() {
     return {
-      content: this.content,
-      rating: this.rating
+      content: this.content
     }
   }
-
 }

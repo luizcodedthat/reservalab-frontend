@@ -21,11 +21,12 @@ function notify(msg) {
 
 async function handleLogin() {
   try {
-    await authStore.doLogin(email.value, password.value)
-    router.push({ name: 'Laboratorios' })
+    const user = await authStore.doLogin(email.value, password.value)
+    // Redireciona pelo role do usuário retornado
+    router.push(user?.dashboardRoute || '/laboratorios')
   } catch (error) {
     console.error(error)
-    notify('Email ou senha inválidos.')
+    notify(authStore.error || 'Email ou senha inválidos.')
   }
 }
 
