@@ -37,6 +37,11 @@ class ReservationService {
     await reservationApi.cancel(id)
     return true
   }
+  // Atualizar dados da reserva (PUT /reservations/:id)
+  async updateReservation(id, data) {
+    const response = await reservationApi.update(id, data)
+    return new Reservation(response.data)
+  }
 
   // Buscar reservas com filtros (usa endpoint /search)
   async searchReservations(filters) {
@@ -70,8 +75,8 @@ class ReservationService {
 
   // Cancelar reservas por filtro
   async cancelReservationsByFilter(filters) {
-    const response = await reservationApi.cancelByFilter(filters)
-    return response.data
+    await reservationApi.cancelByFilter(filters)
+    return true
   }
 
 }

@@ -1,12 +1,13 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/useAuthStore'
 import {
   LayoutDashboard, Calendar, FlaskConical, Activity,
   Ticket, BookOpen, Settings, LogOut, Users, Bell,
-  Search, HelpCircle
+  Search, HelpCircle, ChevronDown
 } from 'lucide-vue-next'
+import Avatar from '@/assets/images/Avatar.svg'
 
 defineProps({
   campus: { type: String, default: 'IF Campus' }
@@ -15,6 +16,8 @@ defineProps({
 const auth   = useAuthStore()
 const route  = useRoute()
 const router = useRouter()
+
+const showMenu = ref(false)
 
 const portalLabel = computed(() => ({
   STUDENT:    'Portal do Aluno',
@@ -55,7 +58,13 @@ const showSettingsInFooter = computed(() =>
 
 function isActive(to) { return route.path === to }
 
+function goDashboard() {
+  showMenu.value = false
+  router.push(auth.user?.dashboardRoute || '/login')
+}
+
 function logout() {
+  showMenu.value = false
   auth.doLogout()
   router.push('/login')
 }
@@ -118,12 +127,31 @@ function logout() {
             <Bell :size="18" color="#6b7280" />
             <span class="notif-dot"></span>
           </button>
-          <div class="user-chip">
-            <div class="user-avatar">{{ auth.user?.initials || '?' }}</div>
-            <div class="user-meta">
-              <span class="user-name">{{ auth.user?.name || 'Usuario' }}</span>
-              <span class="user-role-label">{{ auth.user?.roleLabel }}</span>
-            </div>
+
+          <!-- User dropdown -->
+          <div class="nav-user">
+            <button class="user-btn" @click="showMenu = !showMenu">
+              <img :src="Avatar" alt="Avatar" class="avatar" />
+              <span>{{ auth.user?.name }}</span>
+              <ChevronDown :size="14" :class="{ rotated: showMenu }" />
+            </button>
+
+            <Transition name="dropdown">
+              <div v-if="showMenu" class="dropdown">
+                <div class="dropdown-header">
+                  <div class="d-name">{{ auth.user?.name }}</div>
+                  <div class="d-role">{{ auth.user?.roleLabel }}</div>
+                </div>
+                <div class="divider" />
+                <button class="d-item" @click="goDashboard">
+                  <LayoutDashboard :size="15" /> Meu Dashboard
+                </button>
+                <div class="divider" />
+                <button class="d-item danger" @click="logout">
+                  <LogOut :size="15" /> Sair
+                </button>
+              </div>
+            </Transition>
           </div>
         </div>
       </header>
@@ -262,21 +290,67 @@ function logout() {
   border: 1.5px solid white;
 }
 
-.user-chip  { display: flex; align-items: center; gap: 8px; }
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  background: #16a34a;
-  border-radius: 50%;
+/* ===== User dropdown ===== */
+.nav-user { position: relative; }
+
+.user-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 8px;
+  background: none;
+  border: 1px solid #e8ecf0;
+  border-radius: 9px;
+  padding: 5px 10px 5px 5px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.13s;
 }
-.user-name       { display: block; font-size: 12.5px; font-weight: 600; color: #0f172a; }
-.user-role-label { display: block; font-size: 11px; color: #94a3b8; }
+.user-btn:hover { background: #f8fafc; border-color: #d1d5db; }
+
+.avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+
+.rotated { transform: rotate(180deg); transition: transform 0.2s; }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e8ecf0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  min-width: 200px;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.dropdown-header { padding: 12px 14px 10px; }
+.d-name { font-size: 13px; font-weight: 600; color: #0f172a; }
+.d-role { font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
+.divider { height: 1px; background: #f1f5f9; }
+
+.d-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.13s;
+}
+.d-item:hover { background: #f8fafc; }
+.d-item.danger { color: #ef4444; }
+.d-item.danger:hover { background: #fef2f2; }
+
+.dropdown-enter-active, .dropdown-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-6px); }
 
 .page-content { flex: 1; overflow-y: auto; padding: 26px; }
 </style>
