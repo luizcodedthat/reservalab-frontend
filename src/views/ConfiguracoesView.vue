@@ -125,7 +125,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
   <AppLayout>
 
     <div class="page-header">
-      <h1 class="page-title">Configuracoes</h1>
+      <h1 class="page-title">Configurações</h1>
       <p class="page-sub">Gerencie suas preferencias e dados da conta.</p>
     </div>
 

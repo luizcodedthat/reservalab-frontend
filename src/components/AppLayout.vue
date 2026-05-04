@@ -27,7 +27,7 @@ const mainNav = computed(() => {
   const role = auth.user?.role
   if (role === 'STUDENT') return [
     { label: 'Dashboard',      icon: LayoutDashboard, to: '/dashboard/aluno' },
-    { label: 'Horarios',       icon: Calendar,        to: '/horarios' },
+    { label: 'Horários',       icon: Calendar,        to: '/horarios' },
     { label: 'Consultar Labs', icon: FlaskConical,    to: '/laboratorios' },
     { label: 'Status de Uso',  icon: Activity,        to: '/status' },
   ]
@@ -41,11 +41,11 @@ const mainNav = computed(() => {
   ]
   return [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard/secretaria' },
-    { label: 'Laboratorios',  icon: FlaskConical,    to: '/laboratorios' },
+    { label: 'Laboratórios',  icon: FlaskConical,    to: '/laboratorios' },
     { label: 'Reservas',      icon: Calendar,        to: '/reservas' },
     { label: 'Chamados',      icon: Ticket,          to: '/chamados' },
     { label: 'Professores',   icon: Users,           to: '/professores' },
-    { label: 'Configuracoes', icon: Settings,        to: '/configuracoes' },
+    { label: 'Configurações', icon: Settings,        to: '/configuracoes' },
   ]
 })
 
@@ -91,7 +91,7 @@ function logout() {
       <div class="nav-footer">
         <RouterLink v-if="showSettingsInFooter" to="/configuracoes" class="nav-link">
           <Settings :size="16" />
-          <span>Configuracoes</span>
+          <span>Configurações</span>
         </RouterLink>
         <button class="nav-link logout-btn" @click="logout">
           <LogOut :size="16" />
