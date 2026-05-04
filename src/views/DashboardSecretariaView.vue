@@ -8,8 +8,7 @@ import { useReservationStore } from '@/stores/useReservationStore'
 import { useUserStore } from '@/stores/useUserStore'
 import {
   Download, Plus, Calendar, AlertTriangle, FlaskConical,
-  Users, Wrench, Wifi, Leaf, ArrowRight, ChevronDown,
-  CheckCircle2, XCircle
+  Users, Wrench, Wifi, Leaf, ArrowRight,
 } from 'lucide-vue-next'
 
 const ticketStore      = useTicketStore()
@@ -25,6 +24,34 @@ onMounted(async () => {
   await userStore.loadAllUsers()
 })
 
+// ─── Helpers de data ──────────────────────────────────────────────────────────
+function getTodayStr() {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Sao_Paulo'
+  }).format(new Date())
+}
+
+function isActiveNow(r) {
+  const now = new Date()
+  const todayStr = getTodayStr()
+  const rDate = (r.reservationDate || r.date || '').split('T')[0]
+  if (rDate !== todayStr) return false
+
+  const st = (r.status || '').toUpperCase()
+  if (!['APPROVED','CONFIRMADA','PENDING','PENDENTE'].includes(st)) return false
+
+  const block = r.timeBlocks?.[0]
+  const startStr = block?.startTime || r.startTime
+  const endStr   = block?.endTime   || r.endTime
+  if (!startStr || !endStr) return false
+
+  const [sh, sm] = startStr.split(':').map(Number)
+  const [eh, em] = endStr.split(':').map(Number)
+  const start = new Date(now); start.setHours(sh, sm, 0, 0)
+  const end   = new Date(now); end.setHours(eh, em, 0, 0)
+  return now >= start && now <= end
+}
+
 // ─── Stats ────────────────────────────────────────────────────────────────────
 const activeReservations = computed(() =>
   reservationStore.reservations.filter(r =>
@@ -38,9 +65,15 @@ const openTickets = computed(() =>
   ).length
 )
 
-const labsInUse = computed(() =>
-  labStore.labs.filter(l => l.available === false || (l.status || '').toUpperCase() === 'OCCUPIED').length
-)
+const labsInUse = computed(() => {
+  return labStore.labs.filter(lab => {
+    if (lab.available === false || ['OCCUPIED','OCUPADO'].includes((lab.status || '').toUpperCase())) return true
+    return reservationStore.reservations.some(r => {
+      const samelab = r.laboratoryId === lab.id || r.labId === lab.id
+      return samelab && isActiveNow(r)
+    })
+  }).length
+})
 
 const professorsLogged = computed(() =>
   userStore.allUsers.filter(u => u.role === 'PROFESSOR' && u.active).length
@@ -59,10 +92,10 @@ const weekOccupancy = computed(() => {
   return DAYS.map((label, i) => {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)
-    const dateStr = d.toISOString().split('T')[0]
+    const dateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
     const count = reservationStore.reservations.filter(r => {
-      if (!r.date) return false
-      return new Date(r.date).toISOString().split('T')[0] === dateStr
+      const rDate = (r.reservationDate || r.date || '').split('T')[0]
+      return rDate === dateStr
     }).length
     const max = labStore.labs.length || 1
     return { day: label, count, pct: Math.min(100, Math.round((count / max) * 100)) }
@@ -82,13 +115,18 @@ function labName(r) {
 }
 
 function formatResTime(r) {
-  const d = r.date ? new Date(r.date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }) : ''
-  const t = r.startTime && r.endTime ? `, ${r.startTime} - ${r.endTime}` : ''
-  return `${d}${t}`
+  const d = r.reservationDate || r.date
+  const dateLabel = d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }) : ''
+  const block = r.timeBlocks?.[0]
+  const start = block?.startTime || r.startTime
+  const end   = block?.endTime   || r.endTime
+  const t = start && end ? `, ${start} - ${end}` : ''
+  return `${dateLabel}${t}`
 }
 
 function professorName(r) {
-  const u = userStore.allUsers.find(u => u.id === r.professorId || u.id === r.userId)
+  if (r.requestedByName) return r.requestedByName
+  const u = userStore.allUsers.find(u => u.id === r.requestedByUserId || u.id === r.professorId || u.id === r.userId)
   return u?.name || 'Professor'
 }
 
@@ -208,7 +246,6 @@ function formatRelative(ts) {
 
     <!-- Mid: grafico + gestao -->
     <div class="mid-grid">
-
       <div class="card">
         <div class="chart-head">
           <div>
@@ -243,12 +280,10 @@ function formatRelative(ts) {
           </button>
         </div>
       </div>
-
     </div>
 
     <!-- Bottom: tabela + chamados -->
     <div class="bottom-grid">
-
       <div class="card">
         <div class="table-head">
           <div class="card-title">Ultimas Reservas</div>
@@ -317,7 +352,6 @@ function formatRelative(ts) {
         </div>
         <button class="attend-btn" @click="router.push('/chamados')">Atender Chamados</button>
       </div>
-
     </div>
 
   </AppLayout>

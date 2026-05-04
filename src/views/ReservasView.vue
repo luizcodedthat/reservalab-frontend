@@ -4,7 +4,6 @@ import AppLayout from '@/components/AppLayout.vue'
 import { useReservationStore } from '@/stores/useReservationStore'
 import { useLabStore } from '@/stores/useLabStore'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { reservationApi } from '@/api/reservationApi'
 import ReservationModal from '@/components/lab/ReservationModal.vue'
 import {
   Plus, Search, Calendar, Clock, FlaskConical,
@@ -87,19 +86,28 @@ function openEdit(r) {
 
 async function submitEdit() {
   editError.value = ''
-  if (!editForm.value.reservationDate) { editError.value = 'Informe a data.'; return }
-  if (!editForm.value.startTime)       { editError.value = 'Informe o inicio.'; return }
-  if (!editForm.value.endTime)         { editError.value = 'Informe o termino.'; return }
-  if (editForm.value.startTime >= editForm.value.endTime) { editError.value = 'Horario final deve ser maior.'; return }
+  if (!editForm.value.reservationDate) { editError.value = 'Informe a data.';    return }
+  if (!editForm.value.startTime)       { editError.value = 'Informe o início.';  return }
+  if (!editForm.value.endTime)         { editError.value = 'Informe o término.'; return }
+  if (editForm.value.startTime >= editForm.value.endTime) {
+    editError.value = 'Horário final deve ser maior.'
+    return
+  }
+
   editLoading.value = true
   try {
-    await reservationApi.update(editingRes.value.id, {
+    await reservationStore.updateReservation(editingRes.value.id, {
       laboratoryId:    Number(editForm.value.laboratoryId),
       reservationDate: editForm.value.reservationDate,
       purpose:         editForm.value.purpose,
-      timeBlocks: [{ startTime: editForm.value.startTime, endTime: editForm.value.endTime, blockOrder: 1 }],
+      timeBlocks: [{
+        startTime:  editForm.value.startTime,
+        endTime:    editForm.value.endTime,
+        blockOrder: 1,
+      }],
     })
     showEdit.value = false
+    // store já atualiza in-place — reload opcional mas mantém consistência
     await reservationStore.loadReservations(true)
   } catch (err) {
     editError.value = err?.response?.data?.message || 'Erro ao atualizar reserva.'
