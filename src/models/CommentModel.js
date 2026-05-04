@@ -6,7 +6,6 @@ export class Comment {
     this.authorId = data.authorId ?? null
     this.authorName = data.authorName ?? ''
 
-
     this.content = data.content ?? ''
 
     this.rating = data.rating ?? null
@@ -19,10 +18,7 @@ export class Comment {
   }
 
   isValid() {
-    if (!this.authorId) return false
-    if (!this.content || !this.content.trim()) return false
-
-    return true
+    return this.content && this.content.trim().length > 0
   }
 
   isEdited() {
@@ -35,7 +31,6 @@ export class Comment {
 
   toJSON() {
     return {
-      authorId: this.authorId,
       content: this.content,
       rating: this.rating
     }
