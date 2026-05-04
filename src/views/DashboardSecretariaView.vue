@@ -165,7 +165,7 @@ function formatRelative(ts) {
           <Download :size="14" /> Exportar Relatorio Mensal
         </button>
         <button class="btn-primary" @click="router.push('/laboratorios')">
-          <Plus :size="14" /> Adicionar Laboratorio
+          <Plus :size="14" color="#fff" /> Adicionar Laboratorio
         </button>
       </div>
     </div>
@@ -228,18 +228,18 @@ function formatRelative(ts) {
       </div>
 
       <div class="team-card">
-        <h3 class="team-title">Gestao de Equipe</h3>
+        <h3 class="team-title">Gestão de Equipe</h3>
         <p class="team-sub">Mantenha a base de dados dos docentes atualizada para agilizar processos.</p>
         <div class="team-actions">
           <button class="team-btn" @click="router.push('/cadastro')">
             <div class="team-btn-icon"><Users :size="17" color="#16a34a" /></div>
-            <span>Cadastrar Professor</span>
-            <ArrowRight :size="15" class="team-arrow" />
+            <span class="team-btn-text">Cadastrar Professor</span>
+            <ArrowRight :size="15" class="team-arrow" color="#fff" />
           </button>
           <button class="team-btn" @click="router.push('/professores')">
             <div class="team-btn-icon"><Users :size="17" color="#16a34a" /></div>
-            <span>Ver Listagem Completa</span>
-            <ArrowRight :size="15" class="team-arrow" />
+            <span class="team-btn-text">Ver Listagem Completa</span>
+            <ArrowRight :size="15" class="team-arrow" color="#fff" />
           </button>
         </div>
       </div>
@@ -366,12 +366,13 @@ function formatRelative(ts) {
 .bar-label  { font-size: 10.5px; color: #94a3b8; margin-top: 7px; }
 
 .team-card  { background: linear-gradient(140deg, #14532d 0%, #166534 60%, #15803d 100%); border-radius: 12px; padding: 22px; color: #fff; }
-.team-title { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
-.team-sub   { font-size: 12.5px; opacity: 0.8; margin: 0 0 18px; line-height: 1.45; }
+.team-title { font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 8px; }
+.team-sub   { font-size: 12.5px; opacity: 0.8; margin: 0 0 18px; color: #fff; line-height: 1.45; }
 .team-actions { display: flex; flex-direction: column; gap: 8px; }
 .team-btn   { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.12); border: none; border-radius: 9px; padding: 11px 13px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .team-btn:hover { background: rgba(255,255,255,0.2); }
 .team-btn-icon  { width: 30px; height: 30px; background: rgba(255,255,255,0.15); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+.team-btn-text  { color: #fff; }
 .team-arrow     { margin-left: auto; opacity: 0.7; }
 
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
