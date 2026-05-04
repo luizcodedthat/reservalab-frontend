@@ -1,28 +1,22 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { Form, Field, ErrorMessage } from "vee-validate";
+import { Form, Field } from "vee-validate";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { createUser, loginWithGoogle } from "@/firebase/firebase";
-import { updateProfile } from "firebase/auth";
 import { LucideEye, LucideEyeClosed } from "lucide-vue-next";
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-// CAMPOS
 const name = ref("");
+const username = ref("");
 const email = ref("");
 const password = ref("");
 
-// ERROS ABAIXO DOS INPUTS
 const emailError = ref("");
-const googleError = ref("");
 
-// MOSTRAR/OCULTAR SENHA
 const showPassword = ref(false);
 
-// VALIDAR EMAIL INSTITUCIONAL EM TEMPO REAL
 function validateInstitutionalEmail() {
   if (!email.value) {
     emailError.value = "";
@@ -40,70 +34,55 @@ function validateInstitutionalEmail() {
   }
 }
 
-// REGRAS DA SENHA
 const hasUppercase = computed(() => /[A-Z]/.test(password.value || ""));
 const hasNumber = computed(() => /[0-9]/.test(password.value || ""));
-const hasSpecial = computed(() => /[!@#$%^&*(),.?":{}|<>]/.test(password.value || ""));
+const hasSpecial = computed(() =>
+  /[!@#$%^&*(),.?":{}|<>]/.test(password.value || "")
+);
 const hasMinLength = computed(() => (password.value?.length || 0) >= 8);
-const canRegister = computed(() => passwordStrength.value === 4);
 
-// Força da senha
 const passwordStrength = computed(() => {
   let score = 0;
   if (hasUppercase.value) score++;
   if (hasNumber.value) score++;
   if (hasSpecial.value) score++;
   if (hasMinLength.value) score++;
-  return score; // 0 a 4
+  return score;
 });
 
-// CADASTRO
+const canRegister = computed(() => passwordStrength.value === 4);
+
 async function handleRegister() {
   validateInstitutionalEmail();
   if (emailError.value) return;
 
-  try {
-    const userCredential = await createUser(email.value, password.value);
-    const user = userCredential.user;
+  if (!canRegister.value) {
+    emailError.value = "Senha não atende aos requisitos.";
+    return;
+  }
 
-    await updateProfile(user, { displayName: name.value });
-    authStore.user = user;
+  try {
+    await authStore.doRegister({
+      name: name.value,
+      username: username.value,
+      email: email.value,
+      password: password.value,
+    });
 
     router.push({ name: "Laboratorios" });
   } catch (error) {
-    emailError.value = "Erro ao criar conta: " + error.message;
-  }
-}
-
-// LOGIN COM GOOGLE
-async function handleRegisterGoogle() {
-  googleError.value = "";
-
-  try {
-    const result = await loginWithGoogle();
-    const userEmail = result.user.email;
-
-    if (
-      !userEmail.endsWith("@discente.ifpe.edu.br") &&
-      !userEmail.endsWith("@palmares.ifpe.edu.br")
-    ) {
-      googleError.value = "Somente emails institucionais podem acessar.";
-      return;
-    }
-
-    authStore.user = result.user;
-    router.push({ name: "Laboratorios" });
-  } catch (err) {
-    googleError.value = "Erro ao entrar com Google: " + err.code;
+    emailError.value =
+      authStore.error || "Erro ao criar conta. Tente novamente.";
   }
 }
 </script>
 
 <template>
-  <!-- BOTÃO LOGIN -->
-  <button class="login-top-button" @click="router.push('/login')">Login</button>
+  <button class="login-top-button" @click="router.push('/login')">
+    Login
+  </button>
+
   <div class="login-container">
-    <!-- ESQUERDA -->
     <div class="login-left">
       <h1 class="logo">ReservaLab</h1>
       <p class="quote">
@@ -112,28 +91,45 @@ async function handleRegisterGoogle() {
       </p>
     </div>
 
-    <!-- DIREITA -->
     <div class="login-right">
       <div class="login-box">
         <h2>Crie sua conta</h2>
         <p class="subtitle">Insira seus dados para se cadastrar</p>
 
         <Form @submit="handleRegister" class="form">
-          <!-- NOME -->
+
           <div class="input-wrapper">
             <Field name="name" rules="required" v-slot="{ field, meta }">
               <input
                 v-bind="field"
+                v-model="name"
                 type="text"
                 placeholder="Nome completo"
                 class="input-text"
-                :class="{ 'input-error': meta.touched && !meta.valid }"
+                :class="{ 'input-error': meta.touched && meta.dirty && !meta.valid }"
               />
+              <span v-if="meta.touched && meta.dirty && meta.errors[0]" class="error">
+                {{ meta.errors[0] }}
+              </span>
             </Field>
-            <ErrorMessage name="name" class="error" />
           </div>
 
-          <!-- EMAIL -->
+          <div class="input-wrapper">
+            <Field name="username" rules="required" v-slot="{ field, meta }">
+              <input
+                v-bind="field"
+                v-model="username"
+                type="text"
+                placeholder="Nome de usuário"
+                class="input-text"
+                :class="{ 'input-error': meta.touched && meta.dirty && !meta.valid }"
+              />
+              <span v-if="meta.touched && meta.dirty && meta.errors[0]" class="error">
+                {{ meta.errors[0] }}
+              </span>
+            </Field>
+          </div>
+
           <div class="input-wrapper">
             <Field name="email" rules="required|email" v-slot="{ field, meta }">
               <input
@@ -143,14 +139,21 @@ async function handleRegisterGoogle() {
                 placeholder="Email institucional"
                 class="input-text"
                 @input="validateInstitutionalEmail()"
-                :class="{ 'input-error': (meta.touched && !meta.valid) || emailError }"
+                :class="{
+                  'input-error':
+                    (meta.touched && meta.dirty && !meta.valid) ||
+                    (meta.dirty && emailError)
+                }"
               />
+              <span v-if="meta.touched && meta.dirty && meta.errors[0]" class="error">
+                {{ meta.errors[0] }}
+              </span>
+              <span v-if="meta.dirty && emailError" class="error">
+                {{ emailError }}
+              </span>
             </Field>
-            <ErrorMessage name="email" class="error" />
-            <p v-if="emailError" class="error">{{ emailError }}</p>
           </div>
 
-          <!-- SENHA -->
           <div class="input-wrapper">
             <Field name="password" rules="required|min:8" v-slot="{ field, meta }">
               <div style="position: relative">
@@ -160,7 +163,7 @@ async function handleRegisterGoogle() {
                   :type="showPassword ? 'text' : 'password'"
                   placeholder="Senha (mín. 8 caracteres)"
                   class="input-text"
-                  :class="{ 'input-error': meta.touched && !meta.valid }"
+                  :class="{ 'input-error': meta.touched && meta.dirty && !meta.valid }"
                 />
 
                 <span @click="showPassword = !showPassword" class="eye-icon">
@@ -168,76 +171,59 @@ async function handleRegisterGoogle() {
                   <LucideEyeClosed v-else />
                 </span>
               </div>
+
+              <span v-if="meta.touched && meta.dirty && meta.errors[0]" class="error">
+                {{ meta.errors[0] }}
+              </span>
+
+              <ul class="password-check">
+                <li :style="{ color: hasMinLength ? 'green' : 'red' }">✔ Mínimo 8 caracteres</li>
+                <li :style="{ color: hasUppercase ? 'green' : 'red' }">✔ Letra maiúscula</li>
+                <li :style="{ color: hasNumber ? 'green' : 'red' }">✔ Número</li>
+                <li :style="{ color: hasSpecial ? 'green' : 'red' }">✔ Caractere especial</li>
+              </ul>
+
+              <div class="strength-bar">
+                <div
+                  :style="{
+                    height: '100%',
+                    width: passwordStrength * 25 + '%',
+                    background:
+                      passwordStrength <= 1
+                        ? 'red'
+                        : passwordStrength === 2
+                        ? 'orange'
+                        : passwordStrength === 3
+                        ? 'gold'
+                        : 'green',
+                  }"
+                ></div>
+              </div>
             </Field>
-            <ErrorMessage name="password" class="error" />
-
-            <!-- CHECKLIST -->
-            <ul class="password-check">
-              <li :style="{ color: hasMinLength ? 'green' : 'red' }">✔ Mínimo 8 caracteres</li>
-              <li :style="{ color: hasUppercase ? 'green' : 'red' }">
-                ✔ Pelo menos 1 letra maiúscula
-              </li>
-              <li :style="{ color: hasNumber ? 'green' : 'red' }">✔ Pelo menos 1 número</li>
-              <li :style="{ color: hasSpecial ? 'green' : 'red' }">
-                ✔ Pelo menos 1 caractere especial
-              </li>
-            </ul>
-
-            <!-- FORÇA DA SENHA -->
-            <div class="strength-bar">
-              <div
-                :style="{
-                  height: '100%',
-                  width: passwordStrength * 25 + '%',
-                  background:
-                    passwordStrength <= 1
-                      ? 'red'
-                      : passwordStrength === 2
-                      ? 'orange'
-                      : passwordStrength === 3
-                      ? 'gold'
-                      : 'green',
-                  borderRadius: '4px',
-                }"
-              ></div>
-            </div>
           </div>
 
           <button
             type="submit"
             class="btn-primary btn-green"
-            :disabled="!canRegister"
-            :class="{ 'btn-disabled': !canRegister }"
+            :disabled="!canRegister || authStore.loading"
+            :class="{ 'btn-disabled': !canRegister || authStore.loading }"
           >
-            Cadastrar
+            {{ authStore.loading ? "Cadastrando..." : "Cadastrar" }}
           </button>
+
         </Form>
-
-        <div class="divider">ou cadastre-se com</div>
-
-        <!-- GOOGLE -->
-        <button class="btn-secondary" @click="handleRegisterGoogle">
-          <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" class="icon" />
-          Entrar com Google
-        </button>
-
-        <p v-if="googleError" class="error" style="margin-top: 8px">
-          {{ googleError }}
-        </p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Layout geral */
 .login-container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   font-family: Arial, sans-serif;
 }
 
-/* Coluna esquerda */
 .login-left {
   flex: 1;
   background: #18181b;
@@ -245,53 +231,71 @@ async function handleRegisterGoogle() {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 2rem;
+  padding: 3rem 2.5rem;
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
   color: var(--color-gray-background);
 }
 
 .quote {
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: 0.95rem;
+  line-height: 1.6;
   opacity: 0.9;
   color: var(--color-gray-background);
+  max-width: 320px;
 }
 
 .span {
+  display: block;
+  margin-top: 8px;
   font-style: italic;
   font-weight: 500;
-  color: var(--color-gray-background);
 }
 
-/* Coluna direita */
 .login-right {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 2rem;
 }
 
 .login-box {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   text-align: center;
 }
 
+.login-box h2 {
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
 .input-wrapper {
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
   text-align: left;
 }
 
 .input-text {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   transition: 0.2s;
+  font-size: 0.9rem;
+}
+
+.input-text:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 .input-error {
@@ -300,40 +304,50 @@ async function handleRegisterGoogle() {
 
 .error {
   color: red;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  margin-top: 4px;
 }
 
 .eye-icon {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
+  opacity: 0.7;
+}
+
+.eye-icon:hover {
+  opacity: 1;
 }
 
 .password-check {
-  font-size: 0.8rem;
-  margin-top: 6px;
-  padding-left: 20px;
+  font-size: 0.75rem;
+  margin-top: 8px;
+  padding-left: 18px;
+  line-height: 1.5;
 }
 
 .strength-bar {
   height: 6px;
   width: 100%;
-  background: #ddd;
-  margin-top: 6px;
+  background: #e5e7eb;
+  margin-top: 8px;
   border-radius: 4px;
+  overflow: hidden;
 }
 
 .btn-primary {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: none;
   border-radius: 6px;
   color: white;
   font-weight: bold;
   cursor: pointer;
-  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1.2rem;
+  transition: 0.2s;
 }
 
 .btn-green {
@@ -346,29 +360,35 @@ async function handleRegisterGoogle() {
 
 .btn-secondary {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   background: white;
   display: flex;
   justify-content: center;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
 }
 
 .divider {
-  margin: 1rem 0;
-  font-size: 0.8rem;
+  margin: 1.5rem 0;
+  font-size: 0.75rem;
   color: #9ca3af;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
-/* Botão Login no canto superior direito */
 .login-top-button {
   position: absolute;
   top: 20px;
@@ -377,12 +397,12 @@ async function handleRegisterGoogle() {
   background: var(--color-primary);
   color: white;
 
-  padding: 10px 20px;
+  padding: 10px 18px;
   border-radius: 6px;
   border: none;
 
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 
   cursor: pointer;
   transition: 0.2s ease;
@@ -395,8 +415,8 @@ async function handleRegisterGoogle() {
 }
 
 .btn-disabled {
-  background: #ccc !important;
+  background: #d1d5db !important;
   cursor: not-allowed !important;
-  color: #666 !important;
+  color: #6b7280 !important;
 }
 </style>
