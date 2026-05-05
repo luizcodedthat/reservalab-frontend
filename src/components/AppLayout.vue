@@ -274,7 +274,7 @@ function logout() {
 
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
-.icon-btn { background: none; border: none; cursor: pointer; padding: 5px; position: relative; }
+.icon-btn { background: none; border: none; cursor: pointer; padding: 5px; position: relative; display: none; }
 
 .notif-btn .notif-dot {
   position: absolute;

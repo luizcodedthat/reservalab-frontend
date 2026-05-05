@@ -41,7 +41,7 @@ function onKeydown(e) {
     aria-label="Abrir assistente"
   >
     <X v-if="store.open" :size="22" />
-    <MessageCircle v-else :size="22" />
+    <MessageCircle v-else :size="22" color="#fff" />
   </button>
 
   <!-- Painel -->
@@ -49,10 +49,10 @@ function onKeydown(e) {
     <div v-if="store.open" class="chat-panel">
       <!-- Header -->
       <div class="chat-header">
-        <Bot :size="18" />
-        <span>Assistente ReservaLab</span>
+        <Bot :size="18" color="#fff" />
+        <span style="color: #fff;">Assistente ReservaLab</span>
         <button class="chat-clear" title="Limpar conversa" @click="store.reset">
-          <Trash2 :size="15" />
+          <Trash2 :size="15" color="#ef4444"  />
         </button>
       </div>
 

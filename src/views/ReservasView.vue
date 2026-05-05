@@ -169,7 +169,7 @@ function getPurpose(r) { return r.purpose || r.description || r.courseName || ''
         <h1 class="page-title">{{ isAdmin ? 'Gerenciar Reservas' : 'Minhas Reservas' }}</h1>
         <p class="page-sub">{{ isAdmin ? 'Todas as reservas do campus.' : 'Gerencie suas reservas de laboratorio.' }}</p>
       </div>
-      <button class="btn-primary" @click="showCreate = true"><Plus :size="15" /> Nova Reserva</button>
+      <button class="btn-primary" @click="showCreate = true"><Plus :size="15" color="#fff" /> Nova Reserva</button>
     </div>
 
     <div class="toolbar">
@@ -187,7 +187,7 @@ function getPurpose(r) { return r.purpose || r.description || r.courseName || ''
     <div v-else-if="visibleReservations.length === 0" class="empty-state">
       <Calendar :size="36" color="#e2e8f0" />
       <p>Nenhuma reserva encontrada.</p>
-      <button class="btn-primary" @click="showCreate = true"><Plus :size="14" /> Criar primeira reserva</button>
+      <button class="btn-primary" @click="showCreate = true"><Plus :size="14" color="#fff" /> Criar primeira reserva</button>
     </div>
 
     <div v-else class="res-list">
