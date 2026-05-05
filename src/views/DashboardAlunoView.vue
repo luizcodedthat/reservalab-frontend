@@ -263,8 +263,8 @@ function priorityClass(p) {
 .pill-manutencao { background:#fffbeb; color:#d97706; }
 .announce-list  { display:flex; flex-direction:column; gap:9px; margin-bottom:14px; }
 .announce-item  { background:rgba(255,255,255,.09); border-radius:8px; padding:10px 12px; }
-.announce-title { font-size:13px; font-weight:600; margin-bottom:3px; }
-.announce-text  { font-size:12px; opacity:.8; line-height:1.45; }
+.announce-title { font-size:13px; font-weight:600; margin-bottom:3px; color: #fff; }
+.announce-text  { font-size:12px; opacity:.8; line-height:1.45; color: #fff; }
 .btn-ghost-white { width:100%; padding:9px; border:1px solid rgba(255,255,255,.25); background:none; color:#fff; border-radius:8px; font-size:13px; cursor:pointer; }
 .btn-ghost-white:hover { background:rgba(255,255,255,.1); }
 .section-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px; }

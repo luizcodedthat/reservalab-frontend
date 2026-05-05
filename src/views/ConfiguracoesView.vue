@@ -188,7 +188,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
           <div class="card-footer">
             <button class="btn-save" :disabled="profileLoading" @click="saveProfile">
               <Loader v-if="profileLoading" :size="14" class="spin" />
-              <Save   v-else                :size="14" />
+              <Save   v-else                :size="14" color="#fff" />
               {{ profileLoading ? 'Salvando...' : 'Salvar Alteracoes' }}
             </button>
           </div>
