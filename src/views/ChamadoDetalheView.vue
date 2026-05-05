@@ -5,6 +5,7 @@ import { useTicketStore } from '@/stores/useTicketStore'
 import { useCommentStore } from '@/stores/useCommentStore'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useLabStore } from '@/stores/useLabStore'
+import { useUserStore } from '@/stores/useUserStore'
 import Navbar from '@/components/Navbar.vue'
 import ChamadoEditarModal from '@/components/chamados/ChamadoEditarModal.vue'
 import {
@@ -19,6 +20,7 @@ const ticketStore  = useTicketStore()
 const commentStore = useCommentStore()
 const authStore    = useAuthStore()
 const labStore     = useLabStore()
+const userStore    = useUserStore()
 
 const ticketId = computed(() => route.params.id)
 
@@ -56,6 +58,13 @@ const isActive = computed(() =>
 )
 
 const formattedDate = computed(() => ticket.value?.data ?? '')
+
+const authorName = computed(() => {
+  const id = ticket.value?.authorId
+  if (!id) return 'Usuário'
+  const user = userStore.allUsers.find(u => u.id === id || u.id === Number(id))
+  return user?.name || user?.username || `Usuário ${id}`
+})
 
 function formatTimeAgo(timestamp) {
   if (!timestamp) return ''
@@ -113,14 +122,15 @@ function goBack() { router.push({ name: 'Chamados' }) }
 onMounted(async () => {
   await Promise.all([
     fetchData(),
-    labStore.loadLabs?.()
+    labStore.loadLabs?.(),
+    userStore.loadAllUsers()
   ])
 })
 </script>
 
 <template>
   <div class="page">
-    <navbar />
+    <Navbar />
     <main class="page__content">
 
       <div v-if="ticketStore.loading && !ticket" class="state-loading">
@@ -152,7 +162,7 @@ onMounted(async () => {
                 <div class="ticket-author">
                   <div class="avatar"><User :size="18" /></div>
                   <div>
-                    <p class="ticket-author__name">{{ ticket.authorId ?? 'Usuário' }}</p>
+                    <p class="ticket-author__name">{{ authorName }}</p>
                     <p class="ticket-author__role">Autor</p>
                   </div>
                 </div>

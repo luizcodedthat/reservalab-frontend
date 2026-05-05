@@ -122,6 +122,14 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
 
+    // ── Gerenciar laboratorios (admin only) ─────────────────────────────────
+    {
+      path: '/gerenciar-laboratorios',
+      name: 'GerenciarLaboratorios',
+      component: () => import('@/views/GerenciarLaboratoriosView.vue'),
+      meta: { requiresAuth: true, roles: ['SECRETARY', 'TECHNICIAN'] }
+    },
+
     // ── 404 catch-all ─────────────────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
