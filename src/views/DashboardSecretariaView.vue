@@ -26,17 +26,17 @@ const userStore = useUserStore();
 const router = useRouter();
 
 onMounted(async () => {
-  await ticketStore.loadAllTickets();
-  await labStore.loadLabs();
-  await reservationStore.loadReservations();
-  await userStore.loadAllUsers();
+  await Promise.allSettled([
+    ticketStore.loadAllTickets(),
+    labStore.loadLabs(),
+    reservationStore.loadReservations(),
+    userStore.loadAllUsers(),
+  ]);
 });
 
 // ─── Helpers de data ──────────────────────────────────────────────────────────
 function getTodayStr() {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Sao_Paulo",
-  }).format(new Date());
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date());
 }
 
 function isActiveNow(r) {
@@ -44,15 +44,12 @@ function isActiveNow(r) {
   const todayStr = getTodayStr();
   const rDate = (r.reservationDate || r.date || "").split("T")[0];
   if (rDate !== todayStr) return false;
-
   const st = (r.status || "").toUpperCase();
   if (!["APPROVED", "CONFIRMADA", "PENDING", "PENDENTE"].includes(st)) return false;
-
   const block = r.timeBlocks?.[0];
   const startStr = block?.startTime || r.startTime;
   const endStr = block?.endTime || r.endTime;
   if (!startStr || !endStr) return false;
-
   const [sh, sm] = startStr.split(":").map(Number);
   const [eh, em] = endStr.split(":").map(Number);
   const start = new Date(now);
@@ -61,6 +58,13 @@ function isActiveNow(r) {
   end.setHours(eh, em, 0, 0);
   return now >= start && now <= end;
 }
+
+// ─── labsMap para lookup por id ───────────────────────────────────────────────
+const labsMap = computed(() => {
+  const map = {};
+  for (const lab of labStore.labs ?? []) map[lab.id] = lab.name;
+  return map;
+});
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 const activeReservations = computed(
@@ -77,25 +81,25 @@ const openTickets = computed(
     ).length,
 );
 
-const labsInUse = computed(() => {
-  return labStore.labs.filter((lab) => {
-    if (
-      lab.available === false ||
-      ["OCCUPIED", "OCUPADO"].includes((lab.status || "").toUpperCase())
-    )
-      return true;
-    return reservationStore.reservations.some((r) => {
-      const samelab = r.laboratoryId === lab.id || r.labId === lab.id;
-      return samelab && isActiveNow(r);
-    });
-  }).length;
-});
+const labsInUse = computed(
+  () =>
+    labStore.labs.filter((lab) => {
+      if (
+        lab.available === false ||
+        ["OCCUPIED", "OCUPADO"].includes((lab.status || "").toUpperCase())
+      )
+        return true;
+      return reservationStore.reservations.some(
+        (r) => (r.laboratoryId === lab.id || r.labId === lab.id) && isActiveNow(r),
+      );
+    }).length,
+);
 
 const professorsLogged = computed(
   () => userStore.allUsers.filter((u) => u.role === "PROFESSOR" && u.active).length,
 );
 
-// ─── Grafico semanal (reservas por dia) ───────────────────────────────────────
+// ─── Gráfico semanal ──────────────────────────────────────────────────────────
 const DAYS = ["SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
 const weekOccupancy = computed(() => {
@@ -104,30 +108,32 @@ const weekOccupancy = computed(() => {
   const monday = new Date(now);
   monday.setDate(now.getDate() - day + (day === 0 ? -6 : 1));
   monday.setHours(0, 0, 0, 0);
-
   return DAYS.map((label, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const dateStr = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(d);
-    const count = reservationStore.reservations.filter((r) => {
-      const rDate = (r.reservationDate || r.date || "").split("T")[0];
-      return rDate === dateStr;
-    }).length;
+    const count = reservationStore.reservations.filter(
+      (r) => (r.reservationDate || r.date || "").split("T")[0] === dateStr,
+    ).length;
     const max = labStore.labs.length || 1;
     return { day: label, count, pct: Math.min(100, Math.round((count / max) * 100)) };
   });
 });
 
-// ─── Ultimas reservas ─────────────────────────────────────────────────────────
+// ─── Últimas reservas ─────────────────────────────────────────────────────────
 const recentReservations = computed(() =>
   [...reservationStore.reservations]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0, 5),
 );
 
-function labName(r) {
-  const lab = labStore.labs.find((l) => l.id === r.laboratoryId || l.id === r.labId);
-  return lab?.name || r.labName || `Lab ${r.laboratoryId}`;
+function getLabName(r) {
+  return (
+    labsMap.value[r.laboratoryId] ||
+    labsMap.value[r.labId] ||
+    r.labName ||
+    `Lab ${r.laboratoryId || "-"}`
+  );
 }
 
 function formatResTime(r) {
@@ -151,12 +157,11 @@ function professorName(r) {
   const u = userStore.allUsers.find(
     (u) => u.id === r.requestedByUserId || u.id === r.professorId || u.id === r.userId,
   );
-  return u?.name || "Professor";
+  return u?.name || "—";
 }
 
 function professorInitials(r) {
-  const name = professorName(r);
-  return name
+  return professorName(r)
     .trim()
     .split(" ")
     .filter(Boolean)
@@ -184,14 +189,18 @@ function statusLabel(s) {
 const recentTickets = computed(() =>
   [...ticketStore.tickets]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    .slice(0, 3),
+    .slice(0, 4),
 );
+
+function getTicketLabName(t) {
+  return labStore.labs.find((l) => l.id === t)?.name || `Lab ${t || "-"}`;
+}
 
 function priorityLabel(p) {
   const v = (p || "").toUpperCase();
-  if (v === "ALTA" || v === "HIGH") return "ALTA PRIORIDADE";
-  if (v === "MEDIA" || v === "MEDIUM") return "MEDIA PRIORIDADE";
-  return "BAIXA PRIORIDADE";
+  if (v === "ALTA" || v === "HIGH") return "ALTA";
+  if (v === "MEDIA" || v === "MEDIUM") return "MÉDIA";
+  return "BAIXA";
 }
 
 function priorityCls(p) {
@@ -203,9 +212,8 @@ function priorityCls(p) {
 
 function ticketIcon(t) {
   const title = (t.title || "").toLowerCase();
-  if (title.includes("wifi") || title.includes("rede") || title.includes("internet")) return Wifi;
-  if (title.includes("insumo") || title.includes("quimica") || title.includes("material"))
-    return Leaf;
+  if (title.includes("wifi") || title.includes("rede")) return Wifi;
+  if (title.includes("insumo") || title.includes("quimica")) return Leaf;
   return Wrench;
 }
 
@@ -213,10 +221,30 @@ function formatRelative(ts) {
   if (!ts) return "";
   const diff = Date.now() - new Date(ts).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 60) return `ha ${m} min`;
+  if (m < 60) return `há ${m}min`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `ha ${h} hora${h > 1 ? "s" : ""}`;
-  return `ha ${Math.floor(h / 24)} dia(s)`;
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
+}
+
+function ticketStatusCls(s) {
+  if (["OPEN", "Aberto"].includes(s)) return "ts-open";
+  if (["IN_PROGRESS", "Em andamento"].includes(s)) return "ts-progress";
+  if (["RESOLVED", "Concluido"].includes(s)) return "ts-done";
+  return "ts-other";
+}
+
+function ticketStatusLabel(s) {
+  const m = {
+    OPEN: "Aberto",
+    Aberto: "Aberto",
+    IN_PROGRESS: "Em andamento",
+    "Em andamento": "Em andamento",
+    RESOLVED: "Resolvido",
+    Concluido: "Resolvido",
+    CLOSED: "Fechado",
+  };
+  return m[s] || s || "-";
 }
 </script>
 
@@ -226,12 +254,12 @@ function formatRelative(ts) {
     <div class="page-header">
       <div>
         <h1 class="page-title">Painel de Controle</h1>
-        <p class="page-sub">Bem-vindo a central administrativa do ReservaLab.</p>
+        <p class="page-sub">Bem-vindo à central administrativa do ReservaLab.</p>
       </div>
       <div class="header-actions">
-        <button class="btn-secondary"><Download :size="14" /> Exportar Relatorio Mensal</button>
-        <button class="btn-primary" @click="router.push('/laboratorios')">
-          <Plus :size="14" color="#fff" /> Adicionar Laboratorio
+        <button class="btn-secondary"><Download :size="14" /> Exportar Relatório</button>
+        <button class="btn-primary" @click="router.push('/gerenciar-laboratorios')">
+          <Plus :size="14" color="#fff" /> Novo Laboratório
         </button>
       </div>
     </div>
@@ -259,7 +287,7 @@ function formatRelative(ts) {
           <div class="stat-icon bg-purple"><FlaskConical :size="19" color="#8b5cf6" /></div>
           <span class="stat-badge purple">{{ labStore.labs.length }} total</span>
         </div>
-        <div class="stat-label">Laboratorios em Uso</div>
+        <div class="stat-label">Laboratórios em Uso</div>
         <div class="stat-num">{{ labsInUse }}</div>
       </div>
       <div class="stat-card" @click="router.push('/professores')">
@@ -272,13 +300,13 @@ function formatRelative(ts) {
       </div>
     </div>
 
-    <!-- Mid: grafico + gestao -->
+    <!-- Mid -->
     <div class="mid-grid">
       <div class="card">
         <div class="chart-head">
           <div>
-            <div class="card-title">Ocupacao Semanal</div>
-            <div class="chart-sub">Reservas por dia — {{ labStore.labs.length }} laboratorios</div>
+            <div class="card-title">Ocupação Semanal</div>
+            <div class="chart-sub">Reservas por dia — {{ labStore.labs.length }} laboratórios</div>
           </div>
         </div>
         <div class="bar-chart">
@@ -294,38 +322,37 @@ function formatRelative(ts) {
 
       <div class="team-card">
         <h3 class="team-title">Gestão de Equipe</h3>
-        <p class="team-sub">
-          Mantenha a base de dados dos docentes atualizada para agilizar processos.
-        </p>
+        <p class="team-sub">Mantenha a base de dados atualizada para agilizar processos.</p>
         <div class="team-actions">
-          <button class="team-btn" @click="router.push('/professores/cadastrar')">
+          <button class="team-btn" @click="router.push('/configuracoes')">
             <div class="team-btn-icon"><Users :size="17" color="#16a34a" /></div>
-            <span class="team-btn-text">Cadastrar Usuário</span>
+            <span class="team-btn-text">Gerenciar Usuários</span>
             <ArrowRight :size="15" class="team-arrow" color="#fff" />
           </button>
-          <button class="team-btn" @click="router.push('/professores')">
-            <div class="team-btn-icon"><Users :size="17" color="#16a34a" /></div>
-            <span class="team-btn-text">Ver Listagem Completa</span>
+          <button class="team-btn" @click="router.push('/gerenciar-laboratorios')">
+            <div class="team-btn-icon"><FlaskConical :size="17" color="#16a34a" /></div>
+            <span class="team-btn-text">Gerenciar Labs</span>
             <ArrowRight :size="15" class="team-arrow" color="#fff" />
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Bottom: tabela + chamados -->
+    <!-- Bottom -->
     <div class="bottom-grid">
+      <!-- Tabela de reservas -->
       <div class="card">
         <div class="table-head">
-          <div class="card-title">Ultimas Reservas</div>
+          <div class="card-title">Últimas Reservas</div>
           <button class="link-btn" @click="router.push('/reservas')">Ver todas</button>
         </div>
         <div v-if="reservationStore.loading" class="loading-msg">Carregando...</div>
         <table v-else class="res-table">
           <thead>
             <tr>
-              <th>PROFESSOR</th>
-              <th>LABORATORIO</th>
-              <th>HORARIO</th>
+              <th>SOLICITANTE</th>
+              <th>LABORATÓRIO</th>
+              <th>HORÁRIO</th>
               <th>STATUS</th>
             </tr>
           </thead>
@@ -337,7 +364,7 @@ function formatRelative(ts) {
                   {{ professorName(r) }}
                 </div>
               </td>
-              <td>{{ labName(r) }}</td>
+              <td>{{ getLabName(r) }}</td>
               <td>{{ formatResTime(r) }}</td>
               <td>
                 <span class="status-pill" :class="statusClass(r.status)">
@@ -352,8 +379,12 @@ function formatRelative(ts) {
         </table>
       </div>
 
+      <!-- Chamados recentes — CORRIGIDO -->
       <div class="card">
-        <div class="card-title mb-14">Chamados Recentes</div>
+        <div class="table-head">
+          <div class="card-title">Chamados Recentes</div>
+          <button class="link-btn" @click="router.push('/chamados')">Ver todos</button>
+        </div>
         <div v-if="ticketStore.loading" class="loading-msg">Carregando...</div>
         <div v-else class="ticket-list">
           <div
@@ -362,18 +393,26 @@ function formatRelative(ts) {
             class="ticket-row"
             @click="router.push(`/chamados/${t.id}`)"
           >
-            <div class="ticket-icon">
-              <component :is="ticketIcon(t)" :size="15" color="#64748b" />
+            <div class="ticket-icon-wrap">
+              <component :is="ticketIcon(t)" :size="14" color="#64748b" />
             </div>
             <div class="ticket-body">
-              <div class="ticket-top">
-                <span class="ticket-title">{{ t.title }}</span>
+              <div class="ticket-top-row">
+                <span class="ticket-title">{{ t.titulo || "Sem título" }}</span>
                 <span class="ticket-time">{{ formatRelative(t.createdAt) }}</span>
               </div>
-              <div class="ticket-desc">{{ t.labId }} — {{ t.description?.slice(0, 45) }}</div>
-              <span class="priority-label" :class="priorityCls(t.priority)">
-                &bull; {{ priorityLabel(t.priority) }}
-              </span>
+              <div class="ticket-lab">
+                {{ getTicketLabName(parseInt(t.labId.replace("lab", ""))) }}
+              </div>
+              <div class="ticket-desc">{{ (t.descricao || "").slice(0, 55) }}</div>
+              <div class="ticket-footer">
+                <span class="priority-badge" :class="priorityCls(t.priority)">
+                  {{ priorityLabel(t.prioridade) }}
+                </span>
+                <span class="ticket-status-badge" :class="ticketStatusCls(t.status)">
+                  {{ ticketStatusLabel(t.status) }}
+                </span>
+              </div>
             </div>
           </div>
           <div v-if="recentTickets.length === 0" class="empty-row-txt">Nenhum chamado recente.</div>
@@ -533,10 +572,6 @@ function formatRelative(ts) {
   font-weight: 600;
   color: #0f172a;
 }
-.mb-14 {
-  margin-bottom: 14px;
-}
-
 .chart-head {
   display: flex;
   justify-content: space-between;
@@ -548,7 +583,6 @@ function formatRelative(ts) {
   color: #94a3b8;
   margin-top: 3px;
 }
-
 .bar-chart {
   display: flex;
   gap: 10px;
@@ -585,7 +619,6 @@ function formatRelative(ts) {
   color: #94a3b8;
   margin-top: 7px;
 }
-
 .team-card {
   background: linear-gradient(140deg, #14532d 0%, #166534 60%, #15803d 100%);
   border-radius: 12px;
@@ -638,9 +671,10 @@ function formatRelative(ts) {
 }
 .team-btn-text {
   color: #fff;
+  flex: 1;
+  text-align: left;
 }
 .team-arrow {
-  margin-left: auto;
   opacity: 0.7;
 }
 
@@ -663,7 +697,6 @@ function formatRelative(ts) {
   font-weight: 500;
   cursor: pointer;
 }
-
 .res-table {
   width: 100%;
   border-collapse: collapse;
@@ -725,84 +758,116 @@ function formatRelative(ts) {
   color: #64748b;
 }
 
+/* ── Chamados ── */
 .ticket-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .ticket-row {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   cursor: pointer;
-  padding: 7px;
+  padding: 8px;
   border-radius: 8px;
   transition: background 0.1s;
+  border: 1px solid #f1f5f9;
 }
 .ticket-row:hover {
   background: #f8fafc;
 }
-.ticket-icon {
-  width: 34px;
-  height: 34px;
+.ticket-icon-wrap {
+  width: 32px;
+  height: 32px;
   background: #f1f5f9;
-  border-radius: 8px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 .ticket-body {
   flex: 1;
+  min-width: 0;
 }
-.ticket-top {
+.ticket-top-row {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 6px;
+  margin-bottom: 2px;
 }
 .ticket-title {
   font-size: 13px;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1.3;
 }
 .ticket-time {
   font-size: 11px;
   color: #94a3b8;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+.ticket-lab {
+  font-size: 11.5px;
+  color: #16a34a;
+  font-weight: 500;
+  margin-bottom: 2px;
 }
 .ticket-desc {
   font-size: 12px;
   color: #64748b;
-  margin: 2px 0 4px;
+  line-height: 1.4;
+  margin-bottom: 5px;
 }
-.priority-label {
-  font-size: 10.5px;
+.ticket-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.priority-badge {
+  font-size: 10px;
   font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
 }
 .p-high {
+  background: #fef2f2;
   color: #ef4444;
 }
 .p-med {
-  color: #f59e0b;
+  background: #fffbeb;
+  color: #d97706;
 }
 .p-low {
+  background: #f0fdf4;
   color: #16a34a;
 }
-
-.attend-btn {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #e8ecf0;
-  background: #fff;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #374151;
-  font-weight: 500;
-  cursor: pointer;
+.ticket-status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
 }
-.attend-btn:hover {
-  background: #f8fafc;
+.ts-open {
+  background: #fef2f2;
+  color: #ef4444;
+}
+.ts-progress {
+  background: #fffbeb;
+  color: #d97706;
+}
+.ts-done {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.ts-other {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .loading-msg {
@@ -822,5 +887,19 @@ function formatRelative(ts) {
   color: #94a3b8;
   font-size: 13px;
   padding: 16px 0;
+}
+.attend-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e8ecf0;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+}
+.attend-btn:hover {
+  background: #f8fafc;
 }
 </style>
