@@ -1,9 +1,11 @@
 <script setup>
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Tag, Users, MapPin, CalendarDays } from 'lucide-vue-next'
 
 defineProps({
   lab: { type: Object, required: true }
 })
+const authStore = useAuthStore();
 
 const emit = defineEmits(['open-reservation'])
 </script>
@@ -61,7 +63,7 @@ const emit = defineEmits(['open-reservation'])
       <p class="cta-card__text">
         Verifique a disponibilidade completa no calendário e faça sua solicitação em poucos cliques.
       </p>
-      <button class="cta-card__btn" @click="emit('open-reservation')">
+      <button :disabled="authStore.user.role=='STUDENT'" class="cta-card__btn" @click="emit('open-reservation')">
         <CalendarDays color="#fff" :size="18" />
         ABRIR CALENDÁRIO
       </button>
