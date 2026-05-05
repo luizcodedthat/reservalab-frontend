@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import {
   LayoutDashboard, Calendar, FlaskConical, Activity,
   Ticket, BookOpen, Settings, LogOut, Users, Bell,
-  Search, HelpCircle, ChevronDown
+  Search, HelpCircle, ChevronDown, Wrench
 } from 'lucide-vue-next'
 import Avatar from '@/assets/images/Avatar.svg'
 
@@ -43,12 +43,13 @@ const mainNav = computed(() => {
     { label: 'Status de Uso',   icon: Activity,        to: '/status' },
   ]
   return [
-    { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard/secretaria' },
-    { label: 'Laboratórios',  icon: FlaskConical,    to: '/laboratorios' },
-    { label: 'Reservas',      icon: Calendar,        to: '/reservas' },
-    { label: 'Chamados',      icon: Ticket,          to: '/chamados' },
-    { label: 'Professores',   icon: Users,           to: '/professores' },
-    { label: 'Configurações', icon: Settings,        to: '/configuracoes' },
+    { label: 'Dashboard',      icon: LayoutDashboard, to: '/dashboard/secretaria' },
+    { label: 'Laboratórios',   icon: FlaskConical,    to: '/laboratorios' },
+    { label: 'Gerenciar Labs', icon: Wrench,          to: '/gerenciar-laboratorios' },
+    { label: 'Reservas',       icon: Calendar,        to: '/reservas' },
+    { label: 'Chamados',       icon: Ticket,          to: '/chamados' },
+    { label: 'Usuários',       icon: Users,           to: '/professores' },
+    { label: 'Configurações',  icon: Settings,        to: '/configuracoes' },
   ]
 })
 
@@ -207,7 +208,7 @@ function logout() {
 .brand-name { display: block; font-size: 13.5px; font-weight: 700; color: #0f172a; }
 .brand-sub  { display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 1px; }
 
-.nav { flex: 1; padding: 0 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav { flex: 1; padding: 0 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 
 .nav-link {
   display: flex;
@@ -250,6 +251,7 @@ function logout() {
   align-items: center;
   padding: 0 24px;
   gap: 16px;
+  flex-shrink: 0;
 }
 
 .campus-label { font-size: 13px; color: #64748b; font-weight: 500; min-width: 90px; }

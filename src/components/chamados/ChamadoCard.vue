@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useUserStore } from '@/stores/useUserStore'
 import {
   FlaskConical, User, Wrench, UserCheck, Eye, Info
 } from 'lucide-vue-next'
@@ -10,6 +11,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['view', 'attend'])
+
+const userStore = useUserStore()
 
 const STATUS_CONFIG = {
   'Aberto':       { badgeClass: 'badge--open',        ActionIcon: Wrench,    actionLabel: 'Atender chamado', isFinished: false },
@@ -27,10 +30,16 @@ const labName = computed(() => {
   if (!id) return ''
   return props.labsMap[id] ?? id.replace('lab', 'LAB-').toUpperCase()
 })
+
+const authorName = computed(() => {
+  const id = props.ticket.authorId
+  if (!id) return '—'
+  const user = userStore.allUsers.find(u => u.id === id || u.id === Number(id))
+  return user?.name || user?.username || `Usuário ${id}`
+})
 </script>
 
 <template>
-
   <div class="chamado-card" :class="{ 'chamado-card--finished': statusConfig.isFinished }">
 
     <div class="chamado-card__header">
@@ -54,7 +63,7 @@ const labName = computed(() => {
         <div class="chamado-card__avatar">
           <User :size="16" />
         </div>
-        <span class="chamado-card__author-name">{{ ticket.authorId ?? '—' }}</span>
+        <span class="chamado-card__author-name">{{ authorName }}</span>
       </div>
 
       <button
