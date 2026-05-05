@@ -13,9 +13,11 @@ import {
 } from "lucide-vue-next";
 import { useReservationStore } from "@/stores/useReservationStore";
 import { useLabSuggestionStore } from "@/stores/useLabSuggestionStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const reservationStore = useReservationStore();
 const labSuggestionStore = useLabSuggestionStore();
+const auth = useAuthStore();
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -155,8 +157,8 @@ async function handleSubmit() {
   try {
     await reservationStore.addReservation({
       laboratoryId: Number(form.value.labId),
-      requestedByUserId: 2,
-      requestedByName: "Usuário",
+      requestedByUserId: auth.user?.id,
+      requestedByName: auth.user?.name,
       reservationDate: form.value.date,
       purpose: form.value.description,
       timeBlocks: [{ startTime: form.value.startTime, endTime: form.value.endTime, blockOrder: 1 }],
