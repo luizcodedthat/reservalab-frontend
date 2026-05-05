@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useTicketStore } from "@/stores/useTicketStore";
 import { useLabStore } from "@/stores/useLabStore";
 import { useUserStore } from "@/stores/useUserStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import ChamadoCard from "@/components/chamados/ChamadoCard.vue";
 import ChamadoModal from "@/components/chamados/ChamadoModal.vue";
 import SearchAreaChamados from "@/components/chamados/SearchAreaChamados.vue";
@@ -14,6 +15,7 @@ const router      = useRouter();
 const ticketStore = useTicketStore();
 const labStore    = useLabStore();
 const userStore   = useUserStore();
+const authStore   = useAuthStore();
 
 const isModalOpen  = ref(false);
 const searchQuery  = ref("");
@@ -37,6 +39,12 @@ const labsForModal = computed(() =>
 
 const filteredTickets = computed(() => {
   let result = ticketStore.tickets;
+
+  // STUDENT e PROFESSOR só veem os chamados que criaram
+  // SECRETARY e TECHNICIAN (isAdmin) veem todos
+  if (authStore.user && !authStore.isAdmin) {
+    result = result.filter((t) => t.authorId === authStore.user.id);
+  }
 
   if (activeFilter.value.length > 0) {
     result = result.filter((t) => activeFilter.value.includes(t.status));
