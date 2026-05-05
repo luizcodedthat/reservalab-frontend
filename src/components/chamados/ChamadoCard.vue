@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import {
   FlaskConical, User, Wrench, UserCheck, Eye, Info
@@ -13,6 +13,10 @@ const props = defineProps({
 const emit = defineEmits(['view', 'attend'])
 
 const userStore = useUserStore()
+
+onMounted(async () => {
+  await userStore.loadUser(props.ticket.authorId)
+})
 
 const STATUS_CONFIG = {
   'Aberto':       { badgeClass: 'badge--open',        ActionIcon: Wrench,    actionLabel: 'Atender chamado', isFinished: false },
@@ -34,7 +38,8 @@ const labName = computed(() => {
 const authorName = computed(() => {
   const id = props.ticket.authorId
   if (!id) return '—'
-  const user = userStore.allUsers.find(u => u.id === id || u.id === Number(id))
+
+  const user = userStore.getUserById(id)
   return user?.name || user?.username || `Usuário ${id}`
 })
 </script>
