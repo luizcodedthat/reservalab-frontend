@@ -1,4 +1,3 @@
-// src/stores/useAuthStore.js
 import { defineStore } from 'pinia'
 import { authApi } from '@/api/authApi'
 import { User } from '@/models/UserModel'
@@ -17,7 +16,6 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    /** Chamado no app init (main.js ou App.vue) se já houver token salvo */
     async init() {
       if (!this.token) return
       this.loading = true
@@ -64,8 +62,6 @@ export const useAuthStore = defineStore('auth', {
     doLogout() {
       this._clearSession()
     },
-
-    // ─── Helpers ────────────────────────────────────────────────────────────
 
     _saveSession({ token, user }) {
       this.token = token
