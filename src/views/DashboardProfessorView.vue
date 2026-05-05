@@ -191,7 +191,7 @@ function priorityClass(p) {
       </div>
       <div class="header-actions">
         <button class="btn-primary" @click="router.push('/chamados')">
-          <Ticket :size="15" /> Abrir Chamado
+          <Ticket :size="15" color="#fff" /> Abrir Chamado
         </button>
         <button class="btn-secondary" @click="router.push('/laboratorios')">
           <FlaskConical :size="15" /> Consultar Labs

@@ -185,7 +185,7 @@ async function deleteUser(u) {
         <p class="page-sub">Cadastre, edite e gerencie todos os usuários do sistema.</p>
       </div>
       <button class="btn-primary" @click="openCreate">
-        <Plus :size="15" /> Novo Usuário
+        <Plus :size="15" color="#fff" /> Novo Usuário
       </button>
     </div>
 
@@ -340,7 +340,7 @@ async function deleteUser(u) {
               <button class="btn-ghost" @click="showCreate = false">Cancelar</button>
               <button class="btn-primary" :disabled="creating" @click="submitCreate">
                 <Loader v-if="creating" :size="14" class="spinning" />
-                <span v-else>Criar Usuário</span>
+                <span style="color: #fff;" v-else>Criar Usuário</span>
               </button>
             </div>
           </div>

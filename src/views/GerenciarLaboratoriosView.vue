@@ -145,7 +145,7 @@ async function handleDelete(lab) {
         <p class="page-sub">Cadastre, edite e gerencie os laboratórios do campus.</p>
       </div>
       <button class="btn-primary" @click="openCreate">
-        <Plus :size="15" /> Novo Laboratório
+        <Plus :size="15" color="#fff" /> Novo Laboratório
       </button>
     </div>
 
@@ -313,7 +313,7 @@ async function handleDelete(lab) {
               <button class="btn-ghost" @click="showModal = false">Cancelar</button>
               <button class="btn-primary" :disabled="saving" @click="saveModal">
                 <Loader v-if="saving" :size="14" class="spinning" />
-                <span v-else>{{ editingLab ? 'Salvar' : 'Criar' }}</span>
+                <span style="color: #fff;" v-else>{{ editingLab ? 'Salvar' : 'Criar' }}</span>
               </button>
             </div>
           </div>
