@@ -154,7 +154,7 @@ function priorityClass(p) {
               @click="router.push(`/laboratorios/${lab.id}`)"
             >
               <component :is="labStatusCfg(lab).icon" :size="15" :class="`icon-${labStatusCfg(lab).cls}`" />
-              <!-- CORRIGIDO: lab.name não lab.nome / lab.labId -->
+
               <span class="status-name">{{ lab.name }}</span>
               <span class="status-pill" :class="`pill-${labStatusCfg(lab).cls}`">
                 {{ labStatusCfg(lab).label }}

@@ -10,7 +10,7 @@ import {
 import Avatar from '@/assets/images/Avatar.svg'
 
 defineProps({
-  campus: { type: String, default: 'IF Campus' }
+  campus: { type: String, default: 'IF Campus Palmares' }
 })
 
 const auth   = useAuthStore()
@@ -30,7 +30,6 @@ const mainNav = computed(() => {
   const role = auth.user?.role
   if (role === 'STUDENT') return [
     { label: 'Dashboard',      icon: LayoutDashboard, to: '/dashboard/aluno' },
-    { label: 'Horários',       icon: Calendar,        to: '/horarios' },
     { label: 'Consultar Labs', icon: FlaskConical,    to: '/laboratorios' },
     { label: 'Status de Uso',  icon: Activity,        to: '/status' },
   ]
@@ -39,7 +38,6 @@ const mainNav = computed(() => {
     { label: 'Minhas Reservas', icon: Calendar,        to: '/reservas' },
     { label: 'Meus Chamados',   icon: Ticket,          to: '/chamados' },
     { label: 'Consultar Labs',  icon: FlaskConical,    to: '/laboratorios' },
-    { label: 'Horarios',        icon: BookOpen,        to: '/horarios' },
     { label: 'Status de Uso',   icon: Activity,        to: '/status' },
   ]
   return [
@@ -115,10 +113,7 @@ function logout() {
       <header class="topbar">
         <span class="campus-label">{{ campus }}</span>
 
-        <div class="search-box">
-          <Search :size="14" color="#9ca3af" />
-          <input placeholder="Buscar reservas, labs..." />
-        </div>
+
 
         <div class="topbar-right">
           <button v-if="auth.user?.isAdmin()" class="icon-btn">
