@@ -369,9 +369,9 @@ function priorityClass(p) {
 .week-empty { background:#f8fafc; border:1.5px dashed #e2e8f0; border-radius:7px; min-height:80px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#94a3b8; }
 .bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
 .tip-card  { background:linear-gradient(140deg,#14532d 0%,#166534 60%,#15803d 100%); border-radius:12px; padding:24px; color:#fff; display:flex; flex-direction:column; gap:10px; }
-.tip-tag   { display:inline-block; background:rgba(255,255,255,.15); font-size:10px; padding:3px 9px; border-radius:4px; width:fit-content; }
-.tip-title { font-size:20px; font-weight:700; margin:0; }
-.tip-text  { font-size:13px; opacity:.85; line-height:1.5; margin:0; }
+.tip-tag   { display:inline-block; background:rgba(255,255,255,.15); font-size:10px; padding:3px 9px; border-radius:4px; width:fit-content; color: #fff; }
+.tip-title { font-size:20px; font-weight:700; margin:0; color: #fff }
+.tip-text  { font-size:13px; opacity:.85; line-height:1.5; margin:0; color: #fff; }
 .btn-white { background:#fff; color:#0f172a; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; width:fit-content; }
 .ticket-list { display:flex; flex-direction:column; gap:8px; }
 .ticket-row  { display:flex; gap:10px; align-items:flex-start; cursor:pointer; padding:8px; border-radius:8px; transition:background .1s; border:1px solid #f1f5f9; }
