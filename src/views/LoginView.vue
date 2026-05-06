@@ -22,7 +22,6 @@ function notify(msg) {
 async function handleLogin() {
   try {
     const user = await authStore.doLogin(email.value, password.value)
-    // Redireciona pelo role do usuário retornado
     router.push(user?.dashboardRoute || '/laboratorios')
   } catch (error) {
     console.error(error)
@@ -30,7 +29,6 @@ async function handleLogin() {
   }
 }
 
-// Login Google — mantido, mas desativado até migração completa
 async function handleLoginGoogle() {
   notify('Login com Google ainda não disponível nesta versão.')
 }
@@ -84,6 +82,13 @@ async function handleLoginGoogle() {
           <button type="submit" class="btn-primary btn-green" :disabled="authStore.loading">
             {{ authStore.loading ? 'Entrando...' : 'Entrar' }}
           </button>
+
+          <p class="register-link">
+            Não tem conta?
+            <button type="button" class="register-link__btn" @click="router.push('/cadastro')">
+              Cadastre-se
+            </button>
+          </p>
         </form>
 
         <div class="divider">ou entre com</div>
@@ -187,7 +192,7 @@ async function handleLoginGoogle() {
   color: white;
   font-weight: bold;
   cursor: pointer;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   transition: opacity 0.15s;
 }
 
@@ -202,6 +207,27 @@ async function handleLoginGoogle() {
 
 .btn-green:hover:not(:disabled) {
   background-color: #16a34a;
+}
+
+.register-link {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.register-link__btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.register-link__btn:hover {
+  text-decoration: underline;
 }
 
 .btn-secondary {
