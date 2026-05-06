@@ -324,7 +324,7 @@ function ticketStatusLabel(s) {
         <h3 class="team-title">Gestão de Equipe</h3>
         <p class="team-sub">Mantenha a base de dados atualizada para agilizar processos.</p>
         <div class="team-actions">
-          <button class="team-btn" @click="router.push('/configuracoes')">
+          <button class="team-btn" @click="router.push('/professores')">
             <div class="team-btn-icon"><Users :size="17" color="#16a34a" /></div>
             <span class="team-btn-text">Gerenciar Usuários</span>
             <ArrowRight :size="15" class="team-arrow" color="#fff" />
