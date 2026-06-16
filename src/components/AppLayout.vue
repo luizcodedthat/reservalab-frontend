@@ -165,7 +165,6 @@ function logout() {
 .layout {
   display: flex;
   height: 100vh;
-  font-family: 'DM Sans', 'Inter', -apple-system, sans-serif;
   background: #f8fafc;
 }
 
@@ -222,7 +221,7 @@ function logout() {
   text-align: left;
 }
 .nav-link:hover  { background: #f1f5f9; color: #0f172a; }
-.nav-link.active { background: #f0fdf4; color: #16a34a; font-weight: 600; }
+.nav-link.active { background: #f0fdf4; color: var(--color-secondary) ; font-weight: 600; }
 
 .nav-footer {
   padding: 14px 10px 0;

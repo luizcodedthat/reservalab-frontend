@@ -373,7 +373,7 @@ async function handleSubmit() {
   width: 100%; background: #f3f3f4; border: none;
   border-radius: 0.5rem; padding: 0.75rem 1rem;
   font-size: 0.875rem; color: #1a1c1c;
-  font-family: "Inter", sans-serif; outline: none; transition: box-shadow 0.2s;
+  outline: none; transition: box-shadow 0.2s;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus { box-shadow: 0 0 0 2px #006b1f; }
 .form-input:disabled, .form-select:disabled, .form-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -417,7 +417,7 @@ async function handleSubmit() {
 .ai-toggle-btn {
   display: inline-flex; align-items: center; gap: 0.3rem;
   font-size: 0.625rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: #006b1f;
+  letter-spacing: 0.08em; color: var(--color-primary);
   background: none; border: none; cursor: pointer; padding: 0; transition: opacity 0.15s;
 }
 .ai-toggle-btn:hover { opacity: 0.7; }
@@ -438,7 +438,7 @@ async function handleSubmit() {
 .ai-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
 .ai-send-btn {
   flex-shrink: 0; width: 2.25rem; height: 2.25rem;
-  background: #006b1f; color: #fff; border: none; border-radius: 0.375rem;
+  background: var(--color-primary); color: #fff; border: none; border-radius: 0.375rem;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: opacity 0.15s, transform 0.1s; margin-top: 0.125rem;
 }

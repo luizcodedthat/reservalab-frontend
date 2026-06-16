@@ -65,7 +65,7 @@ const emit = defineEmits(['open-reservation'])
       </p>
       <button :disabled="authStore.user.role=='STUDENT'" class="cta-card__btn" @click="emit('open-reservation')">
         <CalendarDays color="#fff" :size="18" />
-        ABRIR CALENDÁRIO
+        RESERVAR AGORA
       </button>
     </div>
 
@@ -129,7 +129,7 @@ const emit = defineEmits(['open-reservation'])
 }
 .cta-card__btn {
   width: 100%; padding: 1rem;
-  background: #006b1f; color: #ffffff; border: none;
+  background: var(--color-primary); color: #ffffff; border: none;
   border-radius: 0.5rem; font-weight: 900; font-size: 0.875rem;
   letter-spacing: 0.05em; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 0.5rem;

@@ -262,8 +262,8 @@ function getPurpose(r) { return r.purpose || r.description || r.courseName || ''
 .page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
 .page-title{font-size:24px;font-weight:800;color:#0f172a;margin:0 0 3px}
 .page-sub{font-size:13px;color:#64748b;margin:0}
-.btn-primary{display:flex;align-items:center;gap:6px;background:#16a34a;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer}
-.btn-primary:hover:not(:disabled){background:#15803d}
+.btn-primary{display:flex;align-items:center;gap:6px;background:var(--color-primary);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer}
+.btn-primary:hover:not(:disabled){background:var(--color-primary-hover)}
 .btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .toolbar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e8ecf0;border-radius:8px;padding:8px 12px;flex:1;max-width:380px}
@@ -272,7 +272,7 @@ function getPurpose(r) { return r.purpose || r.description || r.courseName || ''
 .filters{display:flex;gap:6px;flex-wrap:wrap}
 .filter-btn{background:#fff;border:1px solid #e8ecf0;border-radius:6px;padding:5px 12px;font-size:12px;color:#64748b;cursor:pointer;transition:all .13s}
 .filter-btn:hover{background:#f1f5f9}
-.filter-btn.active{background:#16a34a;color:#fff;border-color:#16a34a;font-weight:600}
+.filter-btn.active{background:var(--color-secondary);color:#fff;border-color:#16a34a;font-weight:600}
 .center-msg{display:flex;align-items:center;justify-content:center;gap:8px;color:#94a3b8;font-size:13px;padding:48px}
 .empty-state{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px;color:#94a3b8;font-size:14px;background:#fff;border:1px solid #e8ecf0;border-radius:12px;text-align:center}
 .res-list{display:flex;flex-direction:column;gap:10px}

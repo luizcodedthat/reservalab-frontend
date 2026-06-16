@@ -90,17 +90,6 @@ async function handleLoginGoogle() {
             </button>
           </p>
         </form>
-
-        <div class="divider">ou entre com</div>
-
-        <button class="btn-secondary" @click="handleLoginGoogle">
-          <img
-            src="https://www.svgrepo.com/show/355037/google.svg"
-            alt="Google"
-            class="icon"
-          />
-          Entrar com Google
-        </button>
       </div>
     </div>
   </div>

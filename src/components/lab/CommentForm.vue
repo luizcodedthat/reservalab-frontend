@@ -74,7 +74,7 @@ async function handleSubmit() {
 .comment-form__textarea {
   width: 100%; min-height: 8rem; background: #e8e8e8;
   border: none; border-radius: 0.5rem; padding: 1rem;
-  font-family: 'Inter', sans-serif; font-size: 0.875rem;
+  font-size: 0.875rem;
   color: #1a1c1c; resize: vertical; outline: none; transition: box-shadow 0.2s;
 }
 .comment-form__textarea::placeholder { color: rgba(63,74,60,0.5); }
@@ -85,7 +85,7 @@ async function handleSubmit() {
   padding: 0.75rem 1.5rem; border-radius: 0.5rem;
   font-size: 0.875rem; font-weight: 700; cursor: pointer; border: none;
   display: inline-flex; align-items: center; gap: 0.5rem;
-  background: linear-gradient(135deg, #006b1f, #0b872b);
+  background: var(--color-primary);
   color: #ffffff; box-shadow: 0 4px 12px rgba(0,107,31,0.2);
   transition: opacity 0.15s, transform 0.1s;
 }

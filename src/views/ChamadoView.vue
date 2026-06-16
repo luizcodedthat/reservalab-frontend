@@ -195,7 +195,7 @@ onMounted(async () => {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 9999px;
-  background: #006b1f;
+  background: var(--color-primary);
   color: #ffffff;
   border: none;
   cursor: pointer;

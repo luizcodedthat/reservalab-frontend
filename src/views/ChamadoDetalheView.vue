@@ -503,7 +503,7 @@ onMounted(async () => {
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn:active:not(:disabled) { transform: scale(0.97); }
 .btn--send {
-  background: linear-gradient(135deg, #006b1f, #0b872b);
+  background: var(--color-primary);
   color: #ffffff; box-shadow: 0 4px 16px rgba(0,107,31,0.2);
 }
 .btn--outlined-primary {

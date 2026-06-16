@@ -71,7 +71,7 @@ onMounted(() => ticketStore.loadTicketsByLabId(labKey.value))
 .add-btn {
   display: flex; align-items: center; gap: 0.375rem;
   background: none; border: none; cursor: pointer;
-  color: #006b1f; font-size: 0.875rem; font-weight: 700;
+  color: var(--color-primary); font-size: 0.875rem; font-weight: 700;
 }
 .add-btn:hover { text-decoration: underline; }
 .table-wrap { overflow-x: auto; }

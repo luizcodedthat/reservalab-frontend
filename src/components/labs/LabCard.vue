@@ -205,7 +205,7 @@ function goToDetail() {
 .lab-card__btn {
   width: 100%;
   padding: 0.75rem;
-  background: linear-gradient(135deg, #006b1f, #0b872b);
+  background: var(--color-primary);
   color: #ffffff;
   border: none;
   border-radius: 0.375rem;

@@ -91,7 +91,7 @@ function onSearch() {
   background: #ffffff; border: none; border-radius: 0.5rem;
   box-shadow: 0 0 0 1px rgba(190,202,185,0.3);
   font-size: 0.875rem; color: #1a1c1c; outline: none;
-  font-family: 'Inter', sans-serif; transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s;
 }
 .search-input:focus { box-shadow: 0 0 0 2px #006b1f; }
 .filter-container { position: relative; }

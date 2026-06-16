@@ -1,27 +1,60 @@
 :root {
-  --color-primary: hsl(142, 71%, 45%);
+  /* =========================
+     CORES
+     ========================= */
+
+  --color-primary: #035261;
+  --color-primary-hover: #024652;
+
   --color-black: hsl(222, 47%, 11%);
   --color-gray-background: hsl(210, 40%, 96%);
   --color-gray-border: hsl(213, 27%, 84%);
   --color-gray-text: hsl(215, 16%, 47%);
+
   --color-yellow: hsl(50, 98%, 64%);
   --color-orange: hsl(31, 97%, 72%);
+  --color-background-green: #EBF6EC;
+  --color-secondary: #01771B;
+  --color-tertiary: #2f499f;
   --color-green: hsl(142, 77%, 73%);
+  --color-background-red: #FFDAD6;
   --color-red: hsl(0, 94%, 82%);
 
-  --font-size-xs: 0.75rem;   /* 12px */
-  --font-size-sm: 0.875rem;  /* 14px */
-  --font-size-base: 1rem;    /* 16px */
-  --font-size-lg: 1.125rem;  /* 18px */
-  --font-size-xl: 1.25rem;   /* 20px */
-  --font-size-2xl: 1.5rem;   /* 24px */
-  --font-size-3xl: 1.875rem; /* 30px */
-  --font-size-4xl: 2.25rem;  /* 36px */
-  --font-size-5xl: 3rem;     /* 48px */
-  --font-size-6xl: 3.75rem;  /* 60px */
-  --font-size-7xl: 4.5rem;   /* 72px */
-  --font-size-8xl: 6rem;     /* 96px */
-  --font-size-9xl: 8rem;     /* 128px */
+  --color-white: #ffffff;
+
+  /* =========================
+     TIPOGRAFIA
+     ========================= */
+
+  --font-family-title: 'Lexend', sans-serif;
+  --font-family-body: 'Public Sans', sans-serif;
+
+  --font-size-xs: 0.75rem;
+  /* 12px */
+  --font-size-sm: 0.875rem;
+  /* 14px */
+  --font-size-base: 1rem;
+  /* 16px */
+  --font-size-lg: 1.125rem;
+  /* 18px */
+  --font-size-xl: 1.25rem;
+  /* 20px */
+  --font-size-2xl: 1.5rem;
+  /* 24px */
+  --font-size-3xl: 1.875rem;
+  /* 30px */
+  --font-size-4xl: 2.25rem;
+  /* 36px */
+  --font-size-5xl: 3rem;
+  /* 48px */
+  --font-size-6xl: 3.75rem;
+  /* 60px */
+  --font-size-7xl: 4.5rem;
+  /* 72px */
+  --font-size-8xl: 6rem;
+  /* 96px */
+  --font-size-9xl: 8rem;
+  /* 128px */
 
   --line-height-none: 1;
   --line-height-tight: 1.25;
@@ -38,13 +71,39 @@
   --tracking-widest: 0.1em;
 }
 
-*, *::before, *::after {
+/* =========================
+   RESET BÁSICO
+   ========================= */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  font-family: 'Inter', 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+body {
+  font-family: var(--font-family-body);
+  color: var(--color-black);
+  background-color: var(--color-white);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-family-title);
   color: var(--color-black);
 }
 
-body, h1, h2, h3, p, ul, ol {
+body,
+h1,
+h2,
+h3,
+p,
+ul,
+ol {
   margin: 0;
   padding: 0;
 }

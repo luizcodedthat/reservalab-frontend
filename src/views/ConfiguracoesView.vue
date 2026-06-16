@@ -12,8 +12,8 @@ const userStore = useUserStore()
 const activeTab = ref('perfil')
 const TABS = [
   { id: 'perfil', label: 'Perfil',       icon: User },
-  { id: 'senha',  label: 'Seguranca',    icon: Lock },
-  { id: 'notif',  label: 'Notificacoes', icon: Bell },
+  { id: 'senha',  label: 'Segurança',    icon: Lock },
+  { id: 'notif',  label: 'Notificações', icon: Bell },
 ]
 
 // ─── Tab Perfil ───────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
 
     <div class="page-header">
       <h1 class="page-title">Configurações</h1>
-      <p class="page-sub">Gerencie suas preferencias e dados da conta.</p>
+      <p class="page-sub">Gerencie suas preferências e dados da conta.</p>
     </div>
 
     <div class="cfg-layout">
@@ -151,7 +151,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
         <!-- ══ PERFIL ══════════════════════════════════════════════════════ -->
         <div v-if="activeTab === 'perfil'" class="cfg-card">
           <div class="cfg-card-title">
-            <User :size="16" color="#16a34a" /> Dados Pessoais
+            <User :size="16" color="#035261" /> Dados Pessoais
           </div>
 
           <!-- Avatar row -->
@@ -176,8 +176,8 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
               <input v-model="profileForm.name" type="text" placeholder="Seu nome completo" />
             </div>
             <div class="field">
-              <label>Username</label>
-              <input v-model="profileForm.username" type="text" placeholder="seu.username" />
+              <label>Nome de usuário</label>
+              <input v-model="profileForm.username" type="text" placeholder="seu.nome.de.usuario" />
             </div>
             <div class="field full">
               <label>Email</label>
@@ -189,7 +189,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
             <button class="btn-save" :disabled="profileLoading" @click="saveProfile">
               <Loader v-if="profileLoading" :size="14" class="spin" />
               <Save   v-else                :size="14" color="#fff" />
-              {{ profileLoading ? 'Salvando...' : 'Salvar Alteracoes' }}
+              {{ profileLoading ? 'Salvando...' : 'Salvar Alteracões' }}
             </button>
           </div>
         </div>
@@ -197,7 +197,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
         <!-- ══ SENHA ════════════════════════════════════════════════════════ -->
         <div v-if="activeTab === 'senha'" class="cfg-card">
           <div class="cfg-card-title">
-            <Lock :size="16" color="#16a34a" /> Alterar Senha
+            <Lock :size="16" color="#035261" /> Alterar Senha
           </div>
 
           <div v-if="pwError" class="alert alert-error">
@@ -271,18 +271,18 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
         <!-- ══ NOTIFICACOES ════════════════════════════════════════════════ -->
         <div v-if="activeTab === 'notif'" class="cfg-card">
           <div class="cfg-card-title">
-            <Bell :size="16" color="#16a34a" /> Preferencias de Notificacao
+            <Bell :size="16" color="#035261" /> Preferências de Notificação
           </div>
 
           <div v-if="notifSaved" class="alert alert-ok">
-            <CheckCircle2 :size="14" /> Preferencias salvas!
+            <CheckCircle2 :size="14" /> Preferências salvas!
           </div>
 
           <div class="toggle-list">
             <div class="toggle-row">
               <div class="toggle-info">
                 <div class="toggle-lbl">Avisos institucionais</div>
-                <div class="toggle-sub">Comunicados do campus e laboratorios</div>
+                <div class="toggle-sub">Comunicados do campus e laboratórios</div>
               </div>
               <button class="toggle-btn" :class="{ on: notif.avisos }" @click="notif.avisos = !notif.avisos">
                 <div class="thumb"></div>
@@ -290,7 +290,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
             </div>
             <div class="toggle-row">
               <div class="toggle-info">
-                <div class="toggle-lbl">Atualizacoes de chamados</div>
+                <div class="toggle-lbl">Atualizações de chamados</div>
                 <div class="toggle-sub">Quando seu chamado for atualizado ou respondido</div>
               </div>
               <button class="toggle-btn" :class="{ on: notif.chamados }" @click="notif.chamados = !notif.chamados">
@@ -300,7 +300,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
             <div class="toggle-row">
               <div class="toggle-info">
                 <div class="toggle-lbl">Lembretes de reserva</div>
-                <div class="toggle-sub">Notificacao antes do inicio da sua reserva</div>
+                <div class="toggle-sub">Notificação antes do início da sua reserva</div>
               </div>
               <button class="toggle-btn" :class="{ on: notif.reservas }" @click="notif.reservas = !notif.reservas">
                 <div class="thumb"></div>
@@ -310,7 +310,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
 
           <div class="card-footer">
             <button class="btn-save" @click="saveNotif">
-              <Save :size="14" /> Salvar Preferencias
+              <Save :size="14" /> Salvar Preferências
             </button>
           </div>
         </div>
@@ -427,7 +427,7 @@ const ROLE_LABEL = { STUDENT: 'Aluno', PROFESSOR: 'Professor', SECRETARY: 'Secre
 
 .btn-save {
   display: flex; align-items: center; gap: 7px;
-  background: #16a34a; color: #fff; border: none;
+  background: var(--color-primary); color: #fff; border: none;
   padding: 10px 22px; border-radius: 8px;
   font-size: 13.5px; font-weight: 600; cursor: pointer;
   transition: background 0.15s;

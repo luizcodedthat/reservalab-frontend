@@ -396,8 +396,8 @@ const lastUpdateLabel = computed(() =>
   white-space: nowrap;
 }
 .badge-livre {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--color-background-green);
+  color: var(--color-primary);
 }
 .badge-ocupado {
   background: #fef2f2;
@@ -431,8 +431,8 @@ const lastUpdateLabel = computed(() =>
   color: #d97706;
 }
 .info-livre {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--color-background-green);
+  color: var(--color-primary);
 }
 
 .lab-resources {
